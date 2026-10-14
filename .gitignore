@@ -1,0 +1,24 @@
+# --- browser profiles used for testing: they contain live sign-in sessions. NEVER commit.
+.edge-profile/
+.brave-profile/
+
+# --- private config (Supabase URL + key for this machine)
+app/config.local.js
+.env
+.env.*
+
+# --- raw reverse-engineering captures: kept local only
+# (they embed third-party source text, or contain account identifiers and screenshots of a signed-in account)
+evidence/session-bundle-*.json
+evidence/page-inspect-*.json
+evidence/captures/cap-*.json
+evidence/app-*.json
+evidence/marketing-bundle.json
+evidence/rea-manifest.txt
+evidence/source-module-paths.txt
+screenshots/
+
+node_modules/
+.DS_Store
+Thumbs.db
+evidence/app-page.err
