@@ -12,6 +12,7 @@ const CORS = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const MAX_BYTES = 512 * 1024;
+// rate limiting lives in the database (public.hit_rate_limit) so every function instance shares one counter
 const MAX_REDIRECTS = 4;
 const TIMEOUT_MS = 6000;
 
@@ -97,6 +98,9 @@ Deno.serve(async (req) => {
     const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return json({ error: 'Sign in to use link previews' }, 401);
+    const { data: allowed, error: rlErr } = await sb.rpc('hit_rate_limit', { p_bucket: 'link-preview', p_max: 30, p_window_seconds: 60 });    // 30 previews per user per minute
+    if (rlErr) console.warn('rate limit check failed, allowing the request:', rlErr.message);
+    else if (allowed === false) return json({ error: 'Too many previews. Try again in a minute.' }, 429);
 
     const body = await req.json().catch(() => ({}));
     let target = String(body.url ?? '').trim();

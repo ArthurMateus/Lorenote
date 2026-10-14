@@ -9,3 +9,9 @@ tools
 node_modules
 *.md
 !app/**/*.md
+.env*
+.vercel
+# never deploy these (they are not needed by the browser)
+app/supabase
+app/README.md
+app/vendor/README.md

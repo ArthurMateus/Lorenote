@@ -1,7 +1,7 @@
 import { Store } from './store.js';
 import { View } from './view.js';
 import { setupInteractions } from './interact.js';
-import { elementText, TYPE_LABEL } from './model.js';
+import { elementText, TYPE_LABEL, normalizeUrl } from './model.js';
 import { setupTemplates } from './template-ui.js';
 import { FileService, dataUrlToBlob, MAX_CLOUD_BYTES } from './files.js';
 import { hydrateIcons } from './icons.js';
@@ -180,7 +180,7 @@ export async function startApp({ backend = null, user = null } = {}) {
   }
   // opened from the OS share sheet (?title=&text=&url=) or the “New note” shortcut (?new=note)
   {
-    const q = new URLSearchParams(location.search); const url = q.get('url') || (q.get('text') || '').match(/https?:\/\/\S+/)?.[0]; const text = (q.get('text') || '').trim(); const title = q.get('title');
+    const q = new URLSearchParams(location.search); const url = normalizeUrl(q.get('url') || (q.get('text') || '').match(/https?:\/\/\S+/)?.[0] || ''); const text = (q.get('text') || '').trim().slice(0, 5000); const title = (q.get('title') || '').slice(0, 200);
     if (url || text || q.get('new')) {
       history.replaceState(null, '', location.pathname + location.hash);
       const at = { parentId: store.rootId, section: 'canvas' };

@@ -40,7 +40,7 @@ create policy "own elements"  on public.elements  for all using (owner = auth.ui
 create policy "own templates" on public.templates for all using (owner = auth.uid()) with check (owner = auth.uid());
 
 -- keep updated_at fresh
-create or replace function public.touch_updated_at() returns trigger language plpgsql as $$
+create or replace function public.touch_updated_at() returns trigger language plpgsql set search_path = public as $$
 begin new.updated_at = now(); return new; end $$;
 drop trigger if exists elements_touch on public.elements;
 create trigger elements_touch before update on public.elements for each row execute function public.touch_updated_at();
@@ -69,3 +69,33 @@ create policy "own files read"   on storage.objects for select using (bucket_id 
 create policy "own files write"  on storage.objects for insert with check (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "own files update" on storage.objects for update using (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "own files delete" on storage.objects for delete using (bucket_id = 'files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- shared rate limiter (used by the link-preview Edge Function; a counter per user and bucket)
+create table if not exists public.rate_limits (
+  user_id      uuid not null,
+  bucket       text not null,
+  window_start timestamptz not null default now(),
+  hits         int not null default 0,
+  primary key (user_id, bucket)
+);
+alter table public.rate_limits enable row level security;       -- no policies: only the function below can touch it
+revoke all on public.rate_limits from anon, authenticated;
+
+create or replace function public.hit_rate_limit(p_bucket text, p_max int, p_window_seconds int) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); n int;
+begin
+  if uid is null then return false; end if;
+  insert into public.rate_limits as r (user_id, bucket, window_start, hits) values (uid, p_bucket, now(), 1)
+  on conflict (user_id, bucket) do update set
+    hits = case when r.window_start < now() - make_interval(secs => p_window_seconds) then 1 else r.hits + 1 end,
+    window_start = case when r.window_start < now() - make_interval(secs => p_window_seconds) then now() else r.window_start end
+  returning hits into n;
+  return n <= p_max;
+end $$;
+revoke all on function public.hit_rate_limit(text, int, int) from public, anon;
+grant execute on function public.hit_rate_limit(text, int, int) to authenticated;
+
+-- Hardening (Security Advisor): trigger-only functions must not be callable through the API.
+alter function public.touch_updated_at() set search_path = public;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;

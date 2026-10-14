@@ -22,3 +22,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 evidence/app-page.err
+.vercel
+
+.vercel
+.env*
