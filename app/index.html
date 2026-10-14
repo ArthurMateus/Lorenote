@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#e8903a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Corkboard">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Corkboard</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="system">
+<section id="landing" hidden>
+  <header class="l-top"><span class="brand"><span class="logo"></span>Corkboard</span><button id="auth-guest" class="btn ghost" type="button">Try it without an account</button></header>
+  <div class="l-grid">
+    <div class="l-hero">
+      <h1>Think visually.<br>Keep it all on one board.</h1>
+      <p>Notes, links, to-do lists, tables, sketches and files on an endless canvas. Nest boards inside boards, connect ideas with lines, and pick up where you left off on any device.</p>
+      <ul>
+        <li><b>Free-form boards</b> with columns, lists and connectors</li>
+        <li><b>Your account, every device</b>: laptop, tablet and phone stay in sync</li>
+        <li><b>No limits</b>: every feature is on, no paywall</li>
+      </ul>
+    </div>
+    <form id="auth-form" class="l-card" novalidate>
+      <div class="auth-tabs"><button type="button" class="auth-tab on" data-mode="signin">Sign in</button><button type="button" class="auth-tab" data-mode="signup">Create account</button></div>
+      <label>Email<input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+      <label>Password<input id="auth-pass" type="password" autocomplete="current-password" placeholder="At least 8 characters" required></label>
+      <p id="auth-msg" class="auth-msg" hidden></p>
+      <button id="auth-submit" class="btn primary" type="submit">Sign in</button>
+      <div class="l-links"><button id="auth-magic" type="button" class="linkbtn">Email me a magic link</button><button id="auth-forgot" type="button" class="linkbtn">Forgot password?</button></div>
+      <div id="auth-oauth" class="l-oauth" hidden></div>
+    </form>
+  </div>
+</section>
+<header id="topbar">
+  <button id="home" class="brand" title="Go to the home board"><span class="logo"></span>Corkboard</button>
+  <nav id="crumbs" aria-label="Board path"></nav>
+  <span class="spacer"></span>
+  <span id="sync" class="sync" hidden></span>
+  <button id="btn-undo" class="ib" title="Undo (Ctrl+Z)" disabled>↶</button>
+  <button id="btn-redo" class="ib" title="Redo (Ctrl+Shift+Z)" disabled>↷</button>
+  <span class="vsep"></span>
+  <button id="zoom-out" class="ib" title="Zoom out">−</button>
+  <button id="zoom-label" class="ib wide" title="Reset zoom">100%</button>
+  <button id="zoom-in" class="ib" title="Zoom in">+</button>
+  <span class="vsep"></span>
+  <button id="btn-templates" class="tb" title="Insert a starter layout">Templates</button>
+  <button id="btn-search" class="ib" title="Search all boards (Ctrl+K)">⌕</button>
+  <button id="btn-trash" class="ib" title="Trash">🗑</button>
+  <button id="btn-menu" class="ib" title="Menu">⋯</button>
+  <div id="menu" class="popmenu" hidden></div>
+</header>
+
+<aside id="toolbar" aria-label="Tools">
+  <button class="tool" data-type="note" title="Note — drag onto the canvas"><i>☰</i><span>Note</span></button>
+  <button class="tool" data-type="link" title="Link"><i>🔗</i><span>Link</span></button>
+  <button class="tool" data-type="todo" title="To-do list"><i>☑</i><span>To-do</span></button>
+  <button class="tool" data-type="line" title="Line / connector"><i>↗</i><span>Line</span></button>
+  <button class="tool" data-type="board" title="Sub-board"><i>▦</i><span>Board</span></button>
+  <button class="tool" data-type="column" title="Column"><i>▥</i><span>Column</span></button>
+  <button class="tool" data-type="comment" title="Comment"><i>💬</i><span>Comment</span></button>
+  <button class="tool" data-type="table" title="Table"><i>▤</i><span>Table</span></button>
+  <hr>
+  <button class="tool" data-type="image" title="Image"><i>🖼</i><span>Image</span></button>
+  <button class="tool" data-type="file" title="File"><i>📎</i><span>File</span></button>
+  <button class="tool" data-type="sketch" title="Sketch"><i>✏️</i><span>Sketch</span></button>
+</aside>
+
+<main id="viewport" class="grid">
+  <div id="world">
+    <div id="canvas"></div>
+    <svg id="lines" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="drag-layer"></div>
+  </div>
+  <div id="marquee" hidden></div>
+  <div id="context-bar" hidden></div>
+  <div id="empty" hidden>
+    <h2>An empty board</h2>
+    <p>Drag a tool from the left, double-click anywhere to drop a note, or drop images and files here.</p>
+    <p class="muted">Tip: drag cards into columns and lists, and drag a line’s end onto a card to connect them.</p>
+  </div>
+</main>
+
+<dialog id="dlg-trash"><form method="dialog"><header><h3>Trash</h3><button class="ib" value="close">✕</button></header><div id="trash-list" class="list"></div><footer><button type="button" id="trash-empty" class="tb danger">Empty trash</button></footer></form></dialog>
+<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" placeholder="Search notes, tasks, links, tables, boards…" autocomplete="off"><button class="ib" value="close">✕</button></header><div id="search-list" class="list"></div></form></dialog>
+<dialog id="dlg-help"><form method="dialog"><header><h3>Shortcuts &amp; gestures</h3><button class="ib" value="close">✕</button></header>
+<table class="keys">
+<tr><td>Double-click canvas</td><td>New note</td></tr><tr><td>Double-click note / board</td><td>Edit text / open board</td></tr>
+<tr><td>Drag tool → canvas, column or list</td><td>Create card there</td></tr><tr><td>Drag card onto column / list / board</td><td>Nest it</td></tr>
+<tr><td>Drag a line end onto a card</td><td>Connect</td></tr><tr><td>Shift-click, drag on empty canvas</td><td>Multi-select</td></tr>
+<tr><td>Space + drag, or wheel</td><td>Pan</td></tr><tr><td>Ctrl + wheel</td><td>Zoom</td></tr>
+<tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>Undo / redo</td></tr><tr><td>Ctrl+D</td><td>Duplicate</td></tr>
+<tr><td>Delete</td><td>Move to trash</td></tr><tr><td>Arrow keys (Shift = ×10)</td><td>Nudge</td></tr>
+<tr><td>Ctrl+K</td><td>Search</td></tr><tr><td>Paste</td><td>Link, note or image card</td></tr>
+</table></form></dialog>
+<div id="templates-menu" class="popmenu" hidden></div>
+<div id="toast" hidden></div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
