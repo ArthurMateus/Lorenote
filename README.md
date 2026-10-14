@@ -23,5 +23,5 @@ Runs fully local by default. To turn on accounts and sync, follow "Cloud account
 
 ## Status
 
-Done: canvas + all card types, nesting, connectors, undo/redo, trash, search, templates (starter), import/export, Supabase accounts (email, magic link, Google), live sync + offline queue, touch gestures, phone layout, installable offline PWA.
-Next: Milanote-style template library + "save board as template", real file storage + link previews, layout/alignment tools.
+Done: canvas + all card types, nesting, connectors, undo/redo, trash, search, a 41-template library with picker and account-bound "My templates", import/export, Supabase accounts (email, magic link, Google), live sync + offline queue, touch gestures, phone layout, installable offline PWA.
+Next: real file storage + link previews, layout/alignment tools.

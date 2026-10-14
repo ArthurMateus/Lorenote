@@ -32,6 +32,13 @@ Behaviour: sign in or create an account on the landing page ("Try it without an 
 - **Share target and shortcut:** on Android/Chrome the installed app appears in the system share sheet; shared links become link cards and shared text becomes a note on the Home board. Long-pressing the icon offers *New note* (`/?new=note`).
 - **Dev server:** `python tools/serve.py 5173` serves `app/` with caching disabled (the service worker is network-first, so edits show up on reload).
 
+## Templates
+
+- **Library:** 41 built-in templates in 10 categories (Planning, Briefs, Moodboards, Storyboards, Brainstorming, Writing, Product & UX, Marketing, Education, Personal): kanban, priority matrix, weekly plan, creative/design/marketing/video briefs, moodboards and brand boards, film and app-flow storyboards, mind map, flow chart, 5 Whys, novel outline, roadmap, SWOT, content calendar, lesson plan, travel plan, budget and more. They are original layouts and wording, organised by technique in the same way design tools usually do.
+- **Picker:** *Templates* in the header (or the button on an empty board). Search, categories, live thumbnails; **Add to this board** (placed beside existing content) or **Create as new board** (a sub-board you land in). Double-click a card to add it straight away.
+- **My templates:** menu → *Save this board as template…* stores the board and everything nested in it. Signed in, templates are kept **in your account** (Supabase `templates` table, row-level security) and follow you across devices; as a guest they stay on this device. Offline, your list comes from a local cache. Limit: 4 MB per template (images count).
+- **Authoring:** built-ins are small data definitions in `src/templates.js` (columns, notes, lists, tables, boards, connectors by reference). User templates use the same node format, so one instantiate/thumbnail path serves both.
+
 ## What is implemented
 
 | Area | Notes |

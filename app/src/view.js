@@ -252,7 +252,7 @@ export class View {
       for (const c of ['#1f2430', '#e5484d', '#2f7de1', '#2f9e6a']) out.push(h('button', { class: 'swatch', style: `background:${c}`, title: 'Line colour', 'data-nodrag': '', onclick: () => edit((e) => ({ ...e, color: c }), 'Line colour') }));
       out.push(sep());
     }
-    if (one?.type === 'image' && one.content.src) out.push(btn('Replace', 'Replace image', () => this.onReplaceImage?.(one.id)), sep());
+    if (one?.type === 'image') out.push(btn(one.content.src ? 'Replace' : 'Choose image', 'Pick an image file', () => this.onReplaceImage?.(one.id)), sep());
     out.push(btn('Duplicate', 'Duplicate (Ctrl+D)', () => this.onDuplicate?.()), btn('Delete', 'Move to trash (Del)', () => this.onDelete?.(), 'danger'));
     return out;
   }
@@ -403,8 +403,13 @@ const BUILDERS = {
 
   image(rec, e, view) {
     const img = h('img', { draggable: 'false', alt: '' });
-    rec.node.append(img);
-    rec.update = (el) => { if (img.getAttribute('src') !== el.content.src) img.src = el.content.src; img.alt = el.content.name; };
+    const ph = h('div', { class: 'img-ph', 'data-nodrag': '', title: 'Double-click to choose an image', ondblclick: () => view.onReplaceImage?.(e.id) }, h('span', { class: 'img-ph-ico' }, '🖼'), h('span', {}, 'Double-click to add an image'));
+    rec.node.append(img, ph);
+    rec.update = (el) => {
+      const has = !!el.content.src; img.hidden = !has; ph.hidden = has;
+      if (has && img.getAttribute('src') !== el.content.src) img.src = el.content.src;
+      img.alt = el.content.name; ph.style.paddingBottom = (el.content.ratio || 0.7) * 100 + '%';
+    };
   },
 
   file(rec, e, view) {

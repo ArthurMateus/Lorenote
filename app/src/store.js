@@ -17,7 +17,7 @@ function idbOpen() {
     r.onerror = () => rej(r.error);
   });
 }
-async function idbGet(key) {
+export async function idbGet(key) {
   try {
     const db = await idbOpen();
     return await new Promise((res, rej) => {
@@ -27,7 +27,7 @@ async function idbGet(key) {
     });
   } catch { try { return JSON.parse(localStorage.getItem(key)); } catch { return undefined; } }
 }
-async function idbSet(key, val) {
+export async function idbSet(key, val) {
   try {
     const db = await idbOpen();
     await new Promise((res, rej) => {

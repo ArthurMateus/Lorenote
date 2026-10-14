@@ -84,6 +84,7 @@
     <h2>An empty board</h2>
     <p>Drag a tool from the left, double-click anywhere to drop a note, or drop images and files here.</p>
     <p class="muted">Tip: drag cards into columns and lists, and drag a line’s end onto a card to connect them.</p>
+    <p><button id="empty-templates" class="btn primary" type="button">Start from a template</button></p>
   </div>
 </main>
 
@@ -99,6 +100,13 @@
 <tr><td>Delete</td><td>Move to trash</td></tr><tr><td>Arrow keys (Shift = ×10)</td><td>Nudge</td></tr>
 <tr><td>Ctrl+K</td><td>Search</td></tr><tr><td>Paste</td><td>Link, note or image card</td></tr>
 </table></form></dialog>
+<dialog id="dlg-templates" class="tpl-dlg"><div class="tpl-wrap">
+  <aside class="tpl-side"><input id="tpl-search" type="search" placeholder="Search templates" autocomplete="off"><nav id="tpl-cats" aria-label="Template categories"></nav></aside>
+  <section class="tpl-main"><header><h3 id="tpl-title">All templates</h3><button id="tpl-close" class="ib" type="button" aria-label="Close">✕</button></header>
+    <div id="tpl-grid" class="tpl-grid"></div><footer id="tpl-foot" class="tpl-foot"></footer></section></div></dialog>
+<dialog id="dlg-savetpl"><form id="savetpl-form" method="dialog" class="newpass"><header><h3>Save this board as a template</h3></header>
+  <div class="body"><input id="savetpl-name" maxlength="80" placeholder="Template name" autocomplete="off" required><p class="muted" style="margin:0;font-size:12.5px">Everything on this board, including nested boards, is saved. Using the template later adds a copy.</p><p id="savetpl-msg" class="auth-msg" hidden></p></div>
+  <footer><button type="button" id="savetpl-cancel" class="btn ghost">Cancel</button>&nbsp;<button id="savetpl-go" class="btn primary" type="submit">Save template</button></footer></form></dialog>
 <div id="templates-menu" class="popmenu" hidden></div>
 <div id="toast" hidden></div>
 <script type="module" src="src/main.js"></script>

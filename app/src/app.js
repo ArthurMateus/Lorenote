@@ -1,7 +1,8 @@
 import { Store } from './store.js';
 import { View } from './view.js';
 import { setupInteractions } from './interact.js';
-import { TEMPLATES, elementText, TYPE_LABEL } from './model.js';
+import { elementText, TYPE_LABEL } from './model.js';
+import { setupTemplates } from './template-ui.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -71,7 +72,8 @@ export async function startApp({ backend = null, user = null } = {}) {
     ...(user ? [[`Signed in as ${user.email}`, () => {}], ['Sign out', async () => { await backend.signOut(); localStorage.removeItem('corkboard.guest'); location.reload(); }]] : (window.corkboardAuth ? [['Sign in / create account', () => { localStorage.removeItem('corkboard.guest'); location.reload(); }]] : [])),
     ...(user && localCount > 0 ? [[`Import ${localCount} items from this device`, importLocal]] : []),
     ['Trash', () => $('#btn-trash').click()],
-    ['Insert a template…', () => $('#btn-templates').click()],
+    ['Templates…', () => tpl.open()],
+    ['Save this board as template…', () => tpl.saveCurrent()],
     ...installItem(),
     [`Theme: ${store.prefs.theme}`, () => { const o = ['system', 'light', 'dark']; store.setPref('theme', o[(o.indexOf(store.prefs.theme) + 1) % 3]); }],
     [`Grid: ${store.prefs.grid ? 'on' : 'off'}`, () => store.setPref('grid', !store.prefs.grid)],
@@ -79,11 +81,9 @@ export async function startApp({ backend = null, user = null } = {}) {
     ['Export all data (JSON)', exportJson], ['Import data (JSON)…', importJson], ['Shortcuts & help', () => $('#dlg-help').showModal()],
   ]);
 
-  $('#btn-templates').onclick = () => popMenu($('#templates-menu'), $('#btn-templates'), Object.keys(TEMPLATES).map((name) => [name, () => {
-    const els = TEMPLATES[name](view.boardId); const z = store.maxZ(view.boardId);
-    store.commit(els.map((e) => ({ id: e.id, after: e.section === 'canvas' ? { ...e, z: z + e.z } : e })), { label: `Template: ${name}` });
-    toast(`Inserted “${name}”`, () => store.undo());
-  }]));
+  const tpl = setupTemplates({ store, view, backend, user, toast });
+  $('#btn-templates').onclick = () => tpl.open();
+  $('#empty-templates').onclick = () => tpl.open();
 
   function exportJson() {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([store.exportJSON()], { type: 'application/json' })), download: `corkboard-${new Date().toISOString().slice(0, 10)}.json` });
