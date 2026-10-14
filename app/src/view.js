@@ -252,6 +252,7 @@ export class View {
       for (const c of ['#1f2430', '#e5484d', '#2f7de1', '#2f9e6a']) out.push(h('button', { class: 'swatch', style: `background:${c}`, title: 'Line colour', 'data-nodrag': '', onclick: () => edit((e) => ({ ...e, color: c }), 'Line colour') }));
       out.push(sep());
     }
+    if (one?.type === 'link' && one.content.url) out.push(btn('Refresh preview', 'Fetch the title and image again', () => this.onLinkPreview?.(one.id, one.content.url, true)), sep());
     if (one?.type === 'image') out.push(btn(one.content.src ? 'Replace' : 'Choose image', 'Pick an image file', () => this.onReplaceImage?.(one.id)), sep());
     out.push(btn('Duplicate', 'Duplicate (Ctrl+D)', () => this.onDuplicate?.()), btn('Delete', 'Move to trash (Del)', () => this.onDelete?.(), 'danger'));
     return out;
@@ -342,21 +343,28 @@ const BUILDERS = {
 
   link(rec, e, view) {
     const input = h('input', { class: 'link-input', placeholder: 'Paste a link and press Enter…', 'data-edit': 'true', 'data-nodrag': '' });
+    const img = h('img', { class: 'link-img', alt: '', referrerpolicy: 'no-referrer', loading: 'lazy', draggable: 'false', hidden: true });
+    img.addEventListener('error', () => { img.hidden = true; });
     const title = h('div', { class: 'link-title', 'data-edit': 'plaintext-only', spellcheck: 'false' });
+    const desc = h('div', { class: 'link-desc' });
     const host = h('div', { class: 'link-host' });
     const open = h('a', { class: 'link-open', target: '_blank', rel: 'noopener noreferrer', 'data-nodrag': '' }, 'Open ↗');
     input.addEventListener('keydown', (ev) => {
       ev.stopPropagation();
-      if (ev.key === 'Enter') { const url = normalizeUrl(input.value); if (url) patchContent(view, e.id, { url, title: hostOf(url) }, 'Add link'); }
+      if (ev.key === 'Enter') { const url = normalizeUrl(input.value); if (url) { patchContent(view, e.id, { url, title: hostOf(url), description: '', image: '' }, 'Add link'); view.onLinkPreview?.(e.id, url); } }
     });
     title.addEventListener('dblclick', () => { title.contentEditable = 'plaintext-only'; title.focus(); });
-    title.addEventListener('blur', () => { title.contentEditable = 'false'; const cur = view.store.live(e.id); if (cur && cur.content.title !== title.textContent) patchContent(view, e.id, { title: title.textContent }, 'Edit link title'); });
+    title.addEventListener('blur', () => { title.contentEditable = 'false'; const cur = view.store.live(e.id); if (cur && cur.content.title !== title.textContent) patchContent(view, e.id, { title: title.textContent, titleEdited: true }, 'Edit link title'); });
     title.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); title.blur(); } });
-    const view_ = h('div', { class: 'link-view' }, h('span', { class: 'link-ico' }, '🔗'), host, title, open);
+    const view_ = h('div', { class: 'link-view' }, img, h('div', { class: 'link-body' }, h('div', { class: 'link-site' }, h('span', { class: 'link-ico' }, '🔗'), host), title, desc, open));
     rec.node.append(input, view_);
     rec.update = (el) => {
-      const has = !!el.content.url; input.hidden = has; view_.hidden = !has;
-      if (has) { host.textContent = hostOf(el.content.url); if (document.activeElement !== title) title.textContent = el.content.title; open.href = el.content.url; }
+      const c = el.content; const has = !!c.url; input.hidden = has; view_.hidden = !has;
+      if (has) {
+        host.textContent = c.siteName || hostOf(c.url); if (document.activeElement !== title) title.textContent = c.title; open.href = c.url;
+        desc.textContent = c.description || ''; desc.hidden = !c.description;
+        if (c.image) { if (img.getAttribute('src') !== c.image) { img.hidden = false; img.src = c.image; } } else { img.hidden = true; img.removeAttribute('src'); }
+      }
     };
   },
 
@@ -403,20 +411,35 @@ const BUILDERS = {
 
   image(rec, e, view) {
     const img = h('img', { draggable: 'false', alt: '' });
-    const ph = h('div', { class: 'img-ph', 'data-nodrag': '', title: 'Double-click to choose an image', ondblclick: () => view.onReplaceImage?.(e.id) }, h('span', { class: 'img-ph-ico' }, '🖼'), h('span', {}, 'Double-click to add an image'));
-    rec.node.append(img, ph);
+    const phLabel = h('span', {}, 'Double-click to add an image');
+    const ph = h('div', { class: 'img-ph', 'data-nodrag': '', title: 'Double-click to choose an image', ondblclick: () => view.onReplaceImage?.(e.id) }, h('span', { class: 'img-ph-ico' }, '🖼'), phLabel);
+    rec.node.append(img, ph); let shownPath = null;
     rec.update = (el) => {
-      const has = !!el.content.src; img.hidden = !has; ph.hidden = has;
-      if (has && img.getAttribute('src') !== el.content.src) img.src = el.content.src;
-      img.alt = el.content.name; ph.style.paddingBottom = (el.content.ratio || 0.7) * 100 + '%';
+      const c = el.content;
+      if (c.path && view.files) {
+        img.hidden = true; ph.hidden = false; phLabel.textContent = 'Loading image…';
+        if (shownPath !== c.path) {
+          shownPath = c.path; const want = c.path;
+          view.files.objectUrl(want).then((u) => { if (shownPath === want) { img.src = u; img.hidden = false; ph.hidden = true; } }).catch(() => { if (shownPath === want) phLabel.textContent = 'Image unavailable right now'; });
+        } else if (img.getAttribute('src')) { img.hidden = false; ph.hidden = true; }
+      } else if (c.src) {
+        shownPath = null; img.hidden = false; ph.hidden = true; if (img.getAttribute('src') !== c.src) img.src = c.src;
+      } else { shownPath = null; img.hidden = true; ph.hidden = false; phLabel.textContent = 'Double-click to add an image'; img.removeAttribute('src'); }
+      img.alt = c.name || ''; ph.style.paddingBottom = (c.ratio || 0.7) * 100 + '%';
     };
   },
 
   file(rec, e, view) {
     const name = h('div', { class: 'file-name' }); const meta = h('div', { class: 'file-meta' });
-    const dl = h('a', { class: 'file-dl', 'data-nodrag': '' }, 'Download');
+    const dl = h('a', { class: 'file-dl', 'data-nodrag': '', href: '#' }, 'Download');
+    dl.addEventListener('click', async (ev) => {
+      const c = view.store.live(e.id)?.content; if (!c?.path || !view.files) return;      // inline files use the plain href
+      ev.preventDefault(); dl.textContent = 'Preparing…';
+      try { const u = await view.files.objectUrl(c.path); const a = h('a', { href: u, download: c.name || 'file' }); document.body.append(a); a.click(); a.remove(); } catch { view.onNotify?.('Could not download that file right now'); }
+      dl.textContent = 'Download';
+    });
     rec.node.append(h('div', { class: 'file-ico' }, '📄'), h('div', { class: 'file-info' }, name, meta, dl));
-    rec.update = (el) => { name.textContent = el.content.name; meta.textContent = fmtSize(el.content.size); dl.href = el.content.src; dl.download = el.content.name; };
+    rec.update = (el) => { const c = el.content; name.textContent = c.name; meta.textContent = fmtSize(c.size); if (c.path) dl.removeAttribute('download'); else { dl.href = c.src; dl.download = c.name; } };
   },
 
   sketch(rec, e, view) {

@@ -60,7 +60,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 -- private file storage (used once uploads move out of the browser)
-insert into storage.buckets (id, name, public) values ('files', 'files', false) on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit) values ('files', 'files', false, 26214400) on conflict (id) do update set file_size_limit = 26214400;   -- 25 MB per file
 drop policy if exists "own files read"   on storage.objects;
 drop policy if exists "own files write"  on storage.objects;
 drop policy if exists "own files update" on storage.objects;

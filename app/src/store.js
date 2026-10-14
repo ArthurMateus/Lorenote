@@ -139,6 +139,17 @@ export class Store {
     this.afterChange(patches, true);
   }
 
+  /** background change (file migration, link previews): applied and synced but not undoable */
+  silentCommit(changes) {
+    const patches = [];
+    for (const c of changes) {
+      const before = this.elements[c.id] || null; const after = c.after ? { ...c.after, modified: Date.now() } : null;
+      if (JSON.stringify(before) === JSON.stringify(after)) continue; patches.push({ id: c.id, before, after });
+    }
+    if (!patches.length) return;
+    this._apply(patches, 'after'); this.afterChange(patches, true);
+  }
+
   undo() {
     const e = this.undoStack.pop(); if (!e) return false;
     this._apply(e.patches, 'before'); this.redoStack.push(e);

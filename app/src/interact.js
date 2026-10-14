@@ -37,10 +37,11 @@ export function setupInteractions(view, toast) {
     return { parentId: hit.parentId, section: hit.section, x: Math.round(hit.x ?? 80), y: Math.round(hit.y ?? 80), order: hit.order ?? 0, z: hit.section === 'canvas' ? store.maxZ(hit.parentId) + 1 : 0 };
   }
 
-  function create(type, hit, content) {
+  function create(type, hit, content, forceId) {
     hit = hit || { parentId: view.boardId, section: 'canvas', ...nextFree() };
     const base = placeAt(type, hit);
     const el = makeElement(type, base.parentId, base);
+    if (forceId) el.id = forceId;
     if (base.section === 'stack') el.w = 0;
     if (content) el.content = { ...el.content, ...content };
     if (type === 'line') { el.section = 'canvas'; el.content = { ...el.content, a: { x: base.x, y: base.y }, b: { x: base.x + 170, y: base.y + 70 } }; }
@@ -80,18 +81,42 @@ export function setupInteractions(view, toast) {
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     return { src: c.toDataURL(mime === 'image/png' ? 'image/png' : 'image/jpeg', 0.85), ratio: c.height / c.width };
   }
+  /** blob -> shrunk image blob + ratio (for upload) */
+  async function shrinkBlob(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+      const max = 2000; const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)); const ratio = img.naturalHeight / img.naturalWidth;
+      if (k === 1 && file.size < 1.5 * 1048576) return { blob: file, ratio };
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const png = file.type === 'image/png' && c.width * c.height < 1.2e6;
+      const blob = await new Promise((r) => c.toBlob(r, png ? 'image/png' : 'image/jpeg', 0.88));
+      return { blob: blob || file, ratio };
+    } finally { URL.revokeObjectURL(url); }
+  }
   async function addFiles(files, hit, replaceId) {
-    let n = 0;
+    let n = 0; const cloud = !!view.files;
     for (const f of files) {
-      if (f.size > 12 * 1048576) { toast(`${f.name} is larger than 12 MB and was skipped`); continue; }
+      const limit = cloud ? 25 : 12;
+      if (f.size > limit * 1048576) { toast(`${f.name} is larger than ${limit} MB and was skipped`); continue; }
       try {
-        const data = await readDataURL(f);
         const at = hit ? { ...hit, x: (hit.x ?? 80) + n * 24, y: (hit.y ?? 80) + n * 24 } : undefined;
-        if (f.type.startsWith('image/')) {
-          const { src, ratio } = await shrinkImage(data, f.type);
-          if (replaceId) { const cur = store.live(replaceId); if (cur) store.commit([{ id: replaceId, after: { ...cur, content: { ...cur.content, src, ratio, name: f.name } } }], { label: 'Replace image' }); }
-          else create('image', at, { src, ratio, name: f.name });
-        } else create('file', at, { name: f.name, size: f.size, mime: f.type, src: data });
+        const isImage = f.type.startsWith('image/');
+        let content = { name: f.name, size: f.size, mime: f.type };
+        if (isImage) {
+          if (cloud) { const { blob, ratio } = await shrinkBlob(f); content = { ...content, ratio, size: blob.size, mime: blob.type || f.type, blob }; }
+          else { const { src, ratio } = await shrinkImage(await readDataURL(f), f.type); content = { ...content, src, ratio }; }
+        } else if (!cloud) content.src = await readDataURL(f);
+        else content.blob = f;
+        const id = replaceId || uid();
+        if (content.blob) {          // signed in: upload first; if that fails (offline) keep the data inline and let the migration move it later
+          const blob = content.blob; delete content.blob;
+          try { toast(`Uploading ${f.name}…`, null, '', 20000); content.path = await view.files.upload(id, blob, f.name); }
+          catch (err) { if (/larger than/.test(err.message)) { toast(err.message); continue; } content.src = await readDataURL(blob); toast(`${f.name} saved on this device; it will upload when you are back online`); }
+        }
+        if (replaceId) { const cur = store.live(replaceId); if (cur) { const old = cur.content.path; store.commit([{ id: replaceId, after: { ...cur, content: { ...cur.content, src: undefined, path: undefined, ...content } } }], { label: 'Replace image' }); if (old) view.files?.forget(old); } }
+        else { const el = create(isImage ? 'image' : 'file', at, content, id); void el; }
         n++;
       } catch { toast(`Could not read ${f.name}`); }
     }
@@ -453,7 +478,7 @@ export function setupInteractions(view, toast) {
     if (files.length) { ev.preventDefault(); return addFiles(files, hit); }
     const text = ev.clipboardData?.getData('text/plain')?.trim(); if (!text) return;
     ev.preventDefault();
-    if (/^https?:\/\/\S+$/i.test(text)) create('link', hit, { url: text, title: hostOf(text) });
+    if (/^https?:\/\/\S+$/i.test(text)) { const el = create('link', hit, { url: text, title: hostOf(text) }); view.onLinkPreview?.(el.id, text); }
     else create('note', hit, { html: text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\n/g, '<br>') });
   });
 

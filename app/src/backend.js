@@ -73,10 +73,25 @@ export async function createBackend(config) {
     async saveTemplate(name, rootId, elements) { const { data, error } = await sb.from('templates').insert({ name, root_id: rootId, elements }).select('id').single(); fail(error); return data.id; },
     async deleteTemplate(id) { const { error } = await sb.from('templates').delete().eq('id', id); fail(error); },
 
-    // ------------------------------------------------------------ files (used from the media step)
-    async uploadFile(path, blob) { const { error } = await sb.storage.from('files').upload(`${user.id}/${path}`, blob, { upsert: true, contentType: blob.type }); fail(error); return `${user.id}/${path}`; },
+    // ------------------------------------------------------------ files
+    async uploadFile(path, blob) { const { error } = await sb.storage.from('files').upload(`${user.id}/${path}`, blob, { upsert: true, contentType: blob.type || 'application/octet-stream' }); fail(error); return `${user.id}/${path}`; },
     async fileUrl(path) { const { data, error } = await sb.storage.from('files').createSignedUrl(path, 3600); fail(error); return data.signedUrl; },
-    async removeFile(path) { const { error } = await sb.storage.from('files').remove([path]); fail(error); },
+    async removeFiles(paths) { if (!paths.length) return; const { error } = await sb.storage.from('files').remove(paths); fail(error); },
+    async listFiles() {
+      const out = [];
+      for (let offset = 0; ; offset += 100) {
+        const { data, error } = await sb.storage.from('files').list(user.id, { limit: 100, offset, sortBy: { column: 'created_at', order: 'asc' } }); fail(error);
+        for (const f of data) if (f.id) out.push({ path: `${user.id}/${f.name}`, created: f.created_at, size: f.metadata?.size || 0 });
+        if (data.length < 100) break;
+      }
+      return out;
+    },
+
+    // ------------------------------------------------------------ link previews (Edge Function `link-preview`)
+    async linkPreview(url) {
+      const { data, error } = await sb.functions.invoke('link-preview', { body: { url } }); fail(error);
+      if (data?.error) throw new Error(data.error); return data;
+    },
   };
   return api;
 }

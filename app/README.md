@@ -32,6 +32,14 @@ Behaviour: sign in or create an account on the landing page ("Try it without an 
 - **Share target and shortcut:** on Android/Chrome the installed app appears in the system share sheet; shared links become link cards and shared text becomes a note on the Home board. Long-pressing the icon offers *New note* (`/?new=note`).
 - **Dev server:** `python tools/serve.py 5173` serves `app/` with caching disabled (the service worker is network-first, so edits show up on reload).
 
+## Files, images and link previews
+
+- **Cloud storage:** signed in, dropped/pasted/picked images and files upload to your private Supabase Storage bucket (`files`, 25 MB per file, one folder per user, row-level security) and the card keeps only a path. Images are downscaled (max 2000 px) before upload. Blobs are cached in the browser (Cache API) so they open offline; downloads use short-lived signed URLs. Guests keep small files inline on the device (12 MB limit).
+- **Migration and tidy-up:** existing inline images/files move to storage automatically in the background (not undoable, never touches your undo history). Files no longer referenced by any card or template, and older than 24 h, are deleted by a periodic sweep.
+- **Offline:** if an upload fails offline, the file is kept inline and uploads itself when you are back online.
+- **Link previews:** pasting or entering a URL asks the `link-preview` Edge Function for the page's title, description and image. It runs on the server (browsers cannot fetch other sites), only answers signed-in users, refuses private/loopback/link-local addresses on every redirect hop, only follows http(s) on ports 80/443/8080/8443, and caps time (6 s) and size (512 KB). *Refresh preview* in the card toolbar re-fetches. Guests get a host-name title only.
+- **Deploying the function:** Supabase dashboard → Edge Functions → *Deploy a new function* → editor, name it `link-preview`, paste [`supabase/functions/link-preview/index.ts`](supabase/functions/link-preview/index.ts), deploy. (Or `supabase functions deploy link-preview` with the CLI.) Leave *Verify JWT* on.
+
 ## Templates
 
 - **Library:** 41 built-in templates in 10 categories (Planning, Briefs, Moodboards, Storyboards, Brainstorming, Writing, Product & UX, Marketing, Education, Personal): kanban, priority matrix, weekly plan, creative/design/marketing/video briefs, moodboards and brand boards, film and app-flow storyboards, mind map, flow chart, 5 Whys, novel outline, roadmap, SWOT, content calendar, lesson plan, travel plan, budget and more. They are original layouts and wording, organised by technique in the same way design tools usually do.

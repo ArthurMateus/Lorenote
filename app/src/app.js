@@ -3,6 +3,7 @@ import { View } from './view.js';
 import { setupInteractions } from './interact.js';
 import { elementText, TYPE_LABEL } from './model.js';
 import { setupTemplates } from './template-ui.js';
+import { FileService, dataUrlToBlob, MAX_CLOUD_BYTES } from './files.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -28,7 +29,58 @@ export async function startApp({ backend = null, user = null } = {}) {
     t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), ms);
   }
 
+  view.files = backend ? new FileService(backend) : null;      // cloud storage for images/files (signed in only)
+  view.onNotify = toast;
   const inter = setupInteractions(view, toast);
+
+  // ---------------------------------------------------------------- link previews (server-side, via the link-preview Edge Function)
+  view.onLinkPreview = async (id, url, force = false) => {
+    if (!backend) { if (force) toast('Sign in to fetch link previews'); return; }
+    try {
+      const p = await backend.linkPreview(url);
+      const cur = store.live(id); if (!cur || cur.content.url !== url) return;
+      if (p.error && !p.title) { if (force) toast('No preview available: ' + p.error); return; }
+      const c = { ...cur.content, description: p.description || '', image: p.image || '', siteName: p.siteName || '' };
+      if (p.title && !cur.content.titleEdited) c.title = p.title;
+      store.silentCommit([{ id, after: { ...cur, content: c } }]);
+      if (force) toast('Preview updated');
+    } catch (err) { if (force) toast('Could not fetch a preview: ' + (err.message || err)); }
+  };
+
+  // ---------------------------------------------------------------- files: move inline data to cloud storage, tidy orphans
+  let migrating = false;
+  async function migrateInlineFiles() {
+    if (!view.files || migrating || !navigator.onLine) return; migrating = true;
+    try {
+      const todo = Object.values(store.elements).filter((e) => (e.type === 'image' || e.type === 'file') && !e.content.path && typeof e.content.src === 'string' && e.content.src.startsWith('data:'));
+      if (!todo.length) return;
+      toast(`Moving ${todo.length} file${todo.length > 1 ? 's' : ''} to cloud storage…`, null, '', 8000);
+      let ok = 0;
+      for (const e of todo) {
+        try {
+          const blob = await dataUrlToBlob(e.content.src); if (blob.size > MAX_CLOUD_BYTES) continue;
+          const path = await view.files.upload(e.id, blob, e.content.name || 'file');
+          const cur = store.get(e.id); if (!cur || cur.content.src !== e.content.src) continue;
+          const { src, ...rest } = cur.content;
+          store.silentCommit([{ id: e.id, after: { ...cur, content: { ...rest, path, size: blob.size, mime: blob.type || rest.mime } } }]); ok++;
+        } catch (err) { console.warn('could not move file', e.id, err); }
+      }
+      if (ok) toast(`Moved ${ok} file${ok > 1 ? 's' : ''} to cloud storage`);
+    } finally { migrating = false; }
+  }
+  async function cleanOrphanFiles() {
+    if (!backend || !user || store.pending.size || store.syncState !== 'synced') return;
+    try {
+      const files = await backend.listFiles(); if (!files.length) return;
+      const used = new Set(); for (const e of Object.values(store.elements)) if (e.content?.path) used.add(e.content.path);
+      const tpls = await backend.listTemplates(); for (const t of tpls) for (const e of Object.values(t.elements || {})) if (e.content?.path) used.add(e.content.path);
+      const cutoff = Date.now() - 24 * 3600 * 1000;      // keep anything newer than a day (undo window, slow syncs)
+      const orphans = files.filter((f) => !used.has(f.path) && new Date(f.created).getTime() < cutoff).map((f) => f.path);
+      if (orphans.length) { await backend.removeFiles(orphans); orphans.forEach((p) => view.files.forget(p)); }
+    } catch (err) { console.warn('file cleanup skipped', err); }
+  }
+  if (view.files) { window.addEventListener('online', migrateInlineFiles); setTimeout(migrateInlineFiles, 2500); setTimeout(cleanOrphanFiles, 25000); }
+
 
   // ---------------------------------------------------------------- routing
   const idFromHash = () => decodeURIComponent(location.hash.replace(/^#\/?/, '')) || store.rootId;
@@ -114,7 +166,7 @@ export async function startApp({ backend = null, user = null } = {}) {
       history.replaceState(null, '', location.pathname + location.hash);
       const at = { parentId: store.rootId, section: 'canvas' };
       setTimeout(() => {
-        if (url) inter.create('link', at, { url, title: title || url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] });
+        if (url) { const el = inter.create('link', at, { url, title: title || url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] }); view.onLinkPreview(el.id, url); }
         else if (text) inter.create('note', at, { html: text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\n/g, '<br>') });
         else inter.create('note', at);
         toast('Added to Home');
@@ -200,6 +252,6 @@ export async function startApp({ backend = null, user = null } = {}) {
   view.setBoard(idFromHash());
   syncChrome();
   view.render();
-  window.corkboard = { store, view, inter }; // handy for debugging in devtools
+  window.corkboard = { store, view, inter, files: { migrate: migrateInlineFiles, cleanOrphans: cleanOrphanFiles } }; // handy for debugging in devtools
 
 }
