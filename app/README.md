@@ -1,4 +1,4 @@
-# Corkboard
+# Lorenote
 
 An original board app (notes, links, to-do lists, columns, sub-boards, comments, tables, images, files, sketches and connector lines on an infinite canvas), built from the behaviour documented in [`../SPEC.md`](../SPEC.md). Everything is unlocked: no card limits, no paywall, no account.
 
@@ -31,6 +31,23 @@ Behaviour: sign in or create an account on the landing page ("Try it without an 
 - **Installable (PWA):** `manifest.webmanifest`, icons (`icons/`, regenerate with `python tools/make_icons.py`) and a service worker (`sw.js`). Chrome/Edge/Android show *Install app* in the ⋯ menu; on iPhone/iPad use Share → Add to Home Screen. Once installed it opens full-screen, works offline (the app files and the Supabase library are cached; edits queue and sync later) and shows an update notice when a new version is deployed.
 - **Share target and shortcut:** on Android/Chrome the installed app appears in the system share sheet; shared links become link cards and shared text becomes a note on the Home board. Long-pressing the icon offers *New note* (`/?new=note`).
 - **Dev server:** `python tools/serve.py 5173` serves `app/` with caching disabled (the service worker is network-first, so edits show up on reload).
+
+## Boards inside boards
+
+Boards nest to any depth: drop a **Board** card anywhere (on a board, in a column), double-click it to go in, and make more boards inside. The breadcrumb shows the path and the **Boards** button (top left, next to the logo) opens a tree of every board you have, with counts, expand/collapse and click-to-open. A board placed inside a column still counts as that board's child. Template boards and "Create as new board" nest the same way. Trashing a board keeps its contents so it can be restored.
+
+## Layout tools
+
+- **Align & distribute:** select 2+ free cards and use the toolbar (left/centre/right, top/middle/bottom; with 3+ also equal horizontal/vertical gaps). Locked cards are skipped; one undo reverts it.
+- **Snap guides:** while dragging, edges and centres snap to other cards within 6 screen pixels and pink guides show what you matched. Hold **Alt** to move freely; *Snap guides* and *Snap to grid* are in the ⋯ menu.
+- **Lock position** (Ctrl+L): locked cards cannot be dragged, resized or nudged and show a small padlock.
+- **Stacking order:** *Bring to front* `]` / *Send to back* `[`.
+- **Zoom to fit** (Shift+1 or the frame button) and a **minimap** (bottom right; click or drag to move; toggle in the menu).
+- **Present** (P): hides the interface and flies from the whole board to each card in reading order. → / Space next, ← back, Esc exits; clicking the right side advances. Read-only while presenting.
+
+## Look and feel
+
+Lorenote has a one-click **light/dark toggle** (sun/moon in the header, also on the sign-in page). The choice follows you (stored with your profile when signed in) and *Follow system light/dark* in the ⋯ menu returns to automatic. Icons are an inline SVG set (`src/icons.js`) that follows the theme; colours, radii and shadows are CSS variables at the top of `styles.css`.
 
 ## Files, images and link previews
 

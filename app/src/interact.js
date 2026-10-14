@@ -2,6 +2,7 @@
 import { ACCEPTS, makeElement, TYPE_LABEL, isContainer, hostOf, normalizeUrl } from './model.js';
 import { uid } from './store.js';
 import { SKETCH_W } from './view.js';
+import { snap } from './layout.js';
 
 const isEditing = (t) => !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 const NO_DRAG = 'input,textarea,select,button,a,[data-nodrag],[contenteditable="true"],[contenteditable="plaintext-only"]';
@@ -184,29 +185,39 @@ export function setupInteractions(view, toast) {
   }
 
   function startCardDrag(ev, downId) {
-    const sx = ev.clientX, sy = ev.clientY; let dragging = false; let items = []; const dragIds = new Set();
+    const sx = ev.clientX, sy = ev.clientY; let dragging = false, blocked = false, guided = false; let items = []; let others = []; const dragIds = new Set();
     const lineItems = [...view.selection].map((id) => store.live(id)).filter((e) => e?.type === 'line');
     const begin = () => {
       dragging = true; view.dragging = true; dom.contextBar.hidden = true;
-      const els = topLevelSelection();
+      const els = topLevelSelection().filter((e) => !e.locked);
       for (const e of els) {
         const rec = view.nodes.get(e.id); if (!rec) continue;
         const wr = view.worldRect(e.id); const p = view.toWorld(sx, sy);
-        items.push({ e, rec, dx: p.x - wr.x, dy: p.y - wr.y, w: wr.w });
+        items.push({ e, rec, dx: p.x - wr.x, dy: p.y - wr.y, w: wr.w, h: wr.h });
         dragIds.add(e.id);
       }
+      if (!items.length) { dragging = false; blocked = true; view.dragging = false; view.updateContextBar(); return; }     // everything selected is locked
       for (const it of items) { it.rec.node.classList.add('dragging'); it.rec.node.style.width = it.w + 'px'; dom.dragLayer.append(it.rec.node); }
+      others = store.children(view.boardId, 'canvas').filter((c) => c.type !== 'line' && !dragIds.has(c.id)).map((c) => view.worldRect(c.id)).filter(Boolean);
     };
     const move = (e) => {
-      if (!dragging) { if (Math.hypot(e.clientX - sx, e.clientY - sy) < 4) return; begin(); }
+      if (blocked) return;
+      if (!dragging) { if (Math.hypot(e.clientX - sx, e.clientY - sy) < 4) return; begin(); if (blocked) return; }
       const p = view.toWorld(e.clientX, e.clientY);
-      items.forEach((it, i) => { it.rec.node.style.left = p.x - it.dx + i * 0 + 'px'; it.rec.node.style.top = p.y - it.dy + 'px'; });
+      let ox = 0, oy = 0, guides = [];
+      if (store.prefs.guides !== false && !e.altKey && others.length && !containerAt(e.clientX, e.clientY, items.map((i) => i.e.type), dragIds)) {
+        const xs = items.map((it) => p.x - it.dx), ys = items.map((it) => p.y - it.dy); const bx = Math.min(...xs), by = Math.min(...ys);
+        const box = { x: bx, y: by, w: Math.max(...items.map((it, i) => xs[i] + it.w)) - bx, h: Math.max(...items.map((it, i) => ys[i] + it.h)) - by };
+        const r = snap(box, others, 6 / view.scale); ox = r.dx; oy = r.dy; guides = r.guides;
+      }
+      guided = guides.length > 0; drawGuides(guides);
+      items.forEach((it) => { it.pos = { x: p.x - it.dx + ox, y: p.y - it.dy + oy }; it.rec.node.style.left = it.pos.x + 'px'; it.rec.node.style.top = it.pos.y + 'px'; });
       if (lineItems.length) { view.lineDrag = new Map(lineItems.map((l) => [l.id, translateLine(l, (e.clientX - sx) / view.scale, (e.clientY - sy) / view.scale)])); }
       markDrop(e.clientX, e.clientY, items.map((i) => i.e.type), dragIds);
       view.updateLines();
     };
     const up = (e) => {
-      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); drawGuides([]);
       if (!dragging) { // plain click on an already-selected card among many collapses selection
         if (!ev.shiftKey && view.selection.size > 1 && !ev.target.closest(NO_DRAG)) view.select([downId]);
         return;
@@ -225,8 +236,8 @@ export function setupInteractions(view, toast) {
       } else {
         let z = store.maxZ(view.boardId);
         items.forEach((it) => {
-          const p = view.toWorld(e.clientX, e.clientY); let x = p.x - it.dx, y = p.y - it.dy;
-          if (store.prefs.snap) { x = Math.round(x / 24) * 24; y = Math.round(y / 24) * 24; }
+          const p = view.toWorld(e.clientX, e.clientY); let x = it.pos ? it.pos.x : p.x - it.dx, y = it.pos ? it.pos.y : p.y - it.dy;
+          if (store.prefs.snap && !guided) { x = Math.round(x / 24) * 24; y = Math.round(y / 24) * 24; }
           changes.push({ id: it.e.id, after: { ...it.e, parentId: view.boardId, section: 'canvas', x: Math.round(x), y: Math.round(y), z: ++z, w: it.e.section === 'canvas' ? it.e.w : Math.round(it.w) } });
         });
       }
@@ -236,7 +247,11 @@ export function setupInteractions(view, toast) {
       store.commit(changes, { label: c ? 'Move into container' : 'Move' });
       view.render();
     };
-    track(move, up, () => { if (dragging) cancelDrag(items); });
+    track(move, up, () => { drawGuides([]); if (dragging) cancelDrag(items); });
+  }
+  function drawGuides(gs) {
+    const svg = document.querySelector('#guides'); svg.replaceChildren();
+    for (const g of gs) { const l = document.createElementNS('http://www.w3.org/2000/svg', 'line'); l.setAttribute('x1', g.x1); l.setAttribute('y1', g.y1); l.setAttribute('x2', g.x2); l.setAttribute('y2', g.y2); svg.append(l); }
   }
   function cancelDrag(items) { view.dragging = false; view.lineDrag = null; for (const it of items) it.rec.node.classList.remove('dragging'); view.nodes.forEach((r) => (r.el = null)); view.render(); }
 
@@ -247,7 +262,7 @@ export function setupInteractions(view, toast) {
 
   // ------------------------------------------------------------------ resize
   function startResize(ev, id) {
-    const rec = view.nodes.get(id); const el = store.live(id); if (!rec || !el) return;
+    const rec = view.nodes.get(id); const el = store.live(id); if (!rec || !el || el.locked) return;
     ev.preventDefault(); ev.stopPropagation();
     const sx = ev.clientX, w0 = rec.node.getBoundingClientRect().width / view.scale; let w = w0;
     const move = (e) => { w = Math.max(el.type === 'board' ? 80 : 140, Math.round(w0 + (e.clientX - sx) / view.scale)); rec.node.style.width = w + 'px'; view.updateLines(); view.updateContextBar(); };
@@ -306,6 +321,7 @@ export function setupInteractions(view, toast) {
 
   // ------------------------------------------------------------------ pan, marquee
   function startPan(ev) {
+    view.stopAnimation?.();
     const sx = ev.clientX, sy = ev.clientY, tx = view.tx, ty = view.ty; let moved = false; vp.classList.add('panning');
     const move = (e) => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 5) moved = true; view.tx = tx + e.clientX - sx; view.ty = ty + e.clientY - sy; view.applyTransform(); };
     const up = () => { vp.classList.remove('panning'); if (!moved && ev.pointerType === 'touch') view.clearSelection(); };
@@ -346,7 +362,8 @@ export function setupInteractions(view, toast) {
 
   // ------------------------------------------------------------------ viewport pointerdown router
   vp.addEventListener('pointerdown', (ev) => {
-    if (ev.target.closest('#context-bar')) return;
+    if (document.body.classList.contains('presenting')) return;
+    if (ev.target.closest('#context-bar, #minimap')) return;
     if (ev.pointerType === 'touch') {
       touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
       if (touches.size === 2) { gesture?.cancel(); return startPinch(); }
@@ -391,6 +408,7 @@ export function setupInteractions(view, toast) {
   vp.addEventListener('contextmenu', (e) => { if (matchMedia('(pointer: coarse)').matches && !isEditing(e.target)) e.preventDefault(); });
 
   vp.addEventListener('dblclick', (ev) => {
+    if (document.body.classList.contains('presenting')) return;
     const card = ev.target.closest('.card');
     if (card?.classList.contains('t-board')) return view.onOpen?.(card.dataset.id);
     if (!card && !ev.target.closest('g.line') && !ev.target.closest('#context-bar')) {
@@ -399,7 +417,7 @@ export function setupInteractions(view, toast) {
   });
 
   vp.addEventListener('wheel', (ev) => {
-    ev.preventDefault();
+    ev.preventDefault(); if (document.body.classList.contains('presenting')) return; view.stopAnimation?.();
     if (ev.ctrlKey || ev.metaKey) zoomAt(ev.clientX, ev.clientY, Math.exp(-ev.deltaY * 0.01));
     else { view.tx -= ev.deltaX; view.ty -= ev.deltaY; view.applyTransform(); }
   }, { passive: false });
@@ -456,14 +474,19 @@ export function setupInteractions(view, toast) {
     const editing = isEditing(ev.target);
     if (mod && !ev.shiftKey && ev.key.toLowerCase() === 'z' && !editing) { ev.preventDefault(); if (!store.undo()) toast('Nothing to undo'); return; }
     if (mod && (ev.key.toLowerCase() === 'y' || (ev.shiftKey && ev.key.toLowerCase() === 'z')) && !editing) { ev.preventDefault(); if (!store.redo()) toast('Nothing to redo'); return; }
-    if (editing) return;
+    if (editing || document.body.classList.contains('presenting')) return;
+    if (mod && ev.key.toLowerCase() === 'l') { ev.preventDefault(); view.layout.toggleLock(store, view); return; }
+    if (ev.key === ']' && view.selection.size) { ev.preventDefault(); view.layout.stack(store, view, 'front'); return; }
+    if (ev.key === '[' && view.selection.size) { ev.preventDefault(); view.layout.stack(store, view, 'back'); return; }
+    if (ev.shiftKey && ev.code === 'Digit1') { ev.preventDefault(); view.fitAll({ animate: true }); return; }
+    if (!mod && !ev.altKey && !ev.shiftKey && ev.key.toLowerCase() === 'p') { ev.preventDefault(); view.onPresent?.(); return; }
     if (mod && ev.key.toLowerCase() === 'd') { ev.preventDefault(); view.onDuplicate(); }
     else if (mod && ev.key.toLowerCase() === 'a') { ev.preventDefault(); view.select(store.children(view.boardId, 'canvas').map((e) => e.id)); }
     else if (ev.key === 'Delete' || ev.key === 'Backspace') { if (view.selection.size) { ev.preventDefault(); view.onDelete(); } }
     else if (ev.key === 'Escape') { if (view.drawing) { view.drawing = null; view.updateSelectionClasses(); view.updateContextBar(); } else view.clearSelection(); }
     else if (ev.key.startsWith('Arrow') && view.selection.size) {
       ev.preventDefault(); const d = ev.shiftKey ? 10 : 1; const dx = ev.key === 'ArrowLeft' ? -d : ev.key === 'ArrowRight' ? d : 0; const dy = ev.key === 'ArrowUp' ? -d : ev.key === 'ArrowDown' ? d : 0;
-      const ch = [...view.selection].map((id) => store.live(id)).filter((e) => e && e.section === 'canvas').map((e) => ({ id: e.id, after: e.type === 'line' ? { ...e, content: { ...e.content, a: { x: e.content.a.x + dx, y: e.content.a.y + dy }, b: { x: e.content.b.x + dx, y: e.content.b.y + dy } } } : { ...e, x: e.x + dx, y: e.y + dy } }));
+      const ch = [...view.selection].map((id) => store.live(id)).filter((e) => e && e.section === 'canvas' && !e.locked).map((e) => ({ id: e.id, after: e.type === 'line' ? { ...e, content: { ...e.content, a: { x: e.content.a.x + dx, y: e.content.a.y + dy }, b: { x: e.content.b.x + dx, y: e.content.b.y + dy } } } : { ...e, x: e.x + dx, y: e.y + dy } }));
       store.commit(ch, { label: 'Nudge', merge: 'nudge' });
     }
   });

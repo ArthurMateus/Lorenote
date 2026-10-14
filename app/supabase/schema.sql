@@ -1,4 +1,4 @@
--- Corkboard schema for Supabase. Run once in the SQL editor (Dashboard → SQL → New query).
+-- Lorenote schema for Supabase. Run once in the SQL editor (Dashboard → SQL → New query).
 -- Every row is owned by one user and protected by row-level security.
 
 create table if not exists public.profiles (

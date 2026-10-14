@@ -52,7 +52,7 @@ async function safeFetch(start: string): Promise<{ res: Response; finalUrl: stri
     await assertPublicHost(u.hostname);
     const res = await fetch(u, {
       redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CorkboardLinkPreview/1.0)', Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5', 'Accept-Language': 'en' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LorenoteLinkPreview/1.0)', Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5', 'Accept-Language': 'en' },
     });
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) { url = new URL(res.headers.get('location')!, u).toString(); continue; }
     return { res, finalUrl: u.toString() };

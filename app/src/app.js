@@ -4,6 +4,11 @@ import { setupInteractions } from './interact.js';
 import { elementText, TYPE_LABEL } from './model.js';
 import { setupTemplates } from './template-ui.js';
 import { FileService, dataUrlToBlob, MAX_CLOUD_BYTES } from './files.js';
+import { hydrateIcons } from './icons.js';
+import { applyTheme, bindThemeToggles } from './theme.js';
+import { setupMinimap } from './minimap.js';
+import { setupPresent } from './present.js';
+import { setupTree } from './tree.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -20,6 +25,7 @@ export async function startApp({ backend = null, user = null } = {}) {
     marquee: $('#marquee'), contextBar: $('#context-bar'), empty: $('#empty'), toolbar: $('#toolbar'),
   };
   const view = new View(store, dom);
+  hydrateIcons(); applyTheme(store.prefs.theme); bindThemeToggles(() => store.prefs.theme, (v) => store.setPref('theme', v));
 
   // ---------------------------------------------------------------- toast
   let toastTimer;
@@ -96,7 +102,7 @@ export async function startApp({ backend = null, user = null } = {}) {
       if (i < boards.length - 1) a.onclick = () => view.onOpen(b.id);
       nav.append(a);
     });
-    document.title = `${boards.at(-1)?.content.title || 'Corkboard'} · Corkboard`;
+    document.title = `${boards.at(-1)?.content.title || 'Lorenote'} · Lorenote`;
   }
 
   // ---------------------------------------------------------------- header
@@ -127,18 +133,30 @@ export async function startApp({ backend = null, user = null } = {}) {
     ['Templates…', () => tpl.open()],
     ['Save this board as template…', () => tpl.saveCurrent()],
     ...installItem(),
-    [`Theme: ${store.prefs.theme}`, () => { const o = ['system', 'light', 'dark']; store.setPref('theme', o[(o.indexOf(store.prefs.theme) + 1) % 3]); }],
+    ['Search…', () => $('#btn-search').click()],
+    ['Present this board', () => present.start()],
+    ['Zoom to fit', () => view.fitAll({ animate: true })],
+    ...(store.prefs.theme !== 'system' ? [['Follow system light/dark', () => store.setPref('theme', 'system')]] : []),
+    [`Minimap: ${store.prefs.minimap !== false ? 'on' : 'off'}`, () => { store.setPref('minimap', store.prefs.minimap === false); mm.schedule(); }],
+    [`Snap guides: ${store.prefs.guides !== false ? 'on' : 'off'}`, () => store.setPref('guides', store.prefs.guides === false)],
     [`Grid: ${store.prefs.grid ? 'on' : 'off'}`, () => store.setPref('grid', !store.prefs.grid)],
     [`Snap to grid: ${store.prefs.snap ? 'on' : 'off'}`, () => store.setPref('snap', !store.prefs.snap)],
     ['Export all data (JSON)', exportJson], ['Import data (JSON)…', importJson], ['Shortcuts & help', () => $('#dlg-help').showModal()],
   ]);
 
   const tpl = setupTemplates({ store, view, backend, user, toast });
+  const tree = setupTree(view, store);
+  const mm = setupMinimap(view, store);
+  const present = setupPresent(view, store, toast);
+  view.onPresent = () => present.start();
+  view.onPresenting = (on) => { if (on) tree.hide(); };
+  $('#btn-present').onclick = () => present.start();
+  $('#btn-fit').onclick = () => view.fitAll({ animate: true });
   $('#btn-templates').onclick = () => tpl.open();
   $('#empty-templates').onclick = () => tpl.open();
 
   function exportJson() {
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([store.exportJSON()], { type: 'application/json' })), download: `corkboard-${new Date().toISOString().slice(0, 10)}.json` });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([store.exportJSON()], { type: 'application/json' })), download: `lorenote-${new Date().toISOString().slice(0, 10)}.json` });
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
   function importJson() {
@@ -151,7 +169,7 @@ export async function startApp({ backend = null, user = null } = {}) {
   }
 
   // ---------------------------------------------------------------- install / update / share target
-  window.addEventListener('corkboard:updated', () => toast('A new version of Corkboard is ready.', () => location.reload(), 'Reload', 20000));
+  window.addEventListener('corkboard:updated', () => toast('A new version of Lorenote is ready.', () => location.reload(), 'Reload', 20000));
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   function installItem() {
     if (standalone) return [];
@@ -252,6 +270,6 @@ export async function startApp({ backend = null, user = null } = {}) {
   view.setBoard(idFromHash());
   syncChrome();
   view.render();
-  window.corkboard = { store, view, inter, files: { migrate: migrateInlineFiles, cleanOrphans: cleanOrphanFiles } }; // handy for debugging in devtools
+  window.lorenote = window.corkboard = { store, view, inter, tree, present, mm, files: { migrate: migrateInlineFiles, cleanOrphans: cleanOrphanFiles } }; // handy for debugging in devtools
 
 }

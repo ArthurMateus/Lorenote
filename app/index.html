@@ -3,26 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#e8903a">
+<meta name="theme-color" content="#5b5bd6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Corkboard">
+<meta name="apple-mobile-web-app-title" content="Lorenote">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<title>Corkboard</title>
+<title>Lorenote</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="stylesheet" href="styles.css">
+<script>/* apply the saved theme before first paint (no flash) */try{document.documentElement.dataset.theme=localStorage.getItem('corkboard.theme')||'system'}catch(e){}</script>
 </head>
 <body data-theme="system">
 <section id="landing" hidden>
-  <header class="l-top"><span class="brand"><span class="logo"></span>Corkboard</span><button id="auth-guest" class="btn ghost" type="button">Try it without an account</button></header>
+  <header class="l-top"><span class="brand"><span class="logo"></span>Lorenote</span><span class="l-top-actions"><button class="ib theme-toggle" type="button" title="Switch light / dark" aria-label="Switch light or dark mode"><i data-icon="moon"></i></button><button id="auth-guest" class="btn ghost" type="button">Try it without an account</button></span></header>
   <div class="l-grid">
     <div class="l-hero">
       <h1>Think visually.<br>Keep it all on one board.</h1>
       <p>Notes, links, to-do lists, tables, sketches and files on an endless canvas. Nest boards inside boards, connect ideas with lines, and pick up where you left off on any device.</p>
       <ul>
         <li><b>Free-form boards</b> with columns, lists and connectors</li>
+        <li><b>Boards inside boards</b>, as deep as you like</li>
         <li><b>Your account, every device</b>: laptop, tablet and phone stay in sync</li>
         <li><b>No limits</b>: every feature is on, no paywall</li>
       </ul>
@@ -38,71 +40,92 @@
     </form>
   </div>
 </section>
+
 <header id="topbar">
-  <button id="home" class="brand" title="Go to the home board"><span class="logo"></span>Corkboard</button>
+  <button id="home" class="brand" title="Go to the home board"><span class="logo"></span><span class="brand-name">Lorenote</span></button>
+  <button id="btn-tree" class="ib" title="Boards (all your nested boards)" aria-label="Boards"><i data-icon="tree"></i></button>
   <nav id="crumbs" aria-label="Board path"></nav>
   <span class="spacer"></span>
   <span id="sync" class="sync" hidden></span>
-  <button id="btn-undo" class="ib" title="Undo (Ctrl+Z)" disabled>↶</button>
-  <button id="btn-redo" class="ib" title="Redo (Ctrl+Shift+Z)" disabled>↷</button>
+  <button id="btn-undo" class="ib" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><i data-icon="undo"></i></button>
+  <button id="btn-redo" class="ib" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><i data-icon="redo"></i></button>
   <span class="vsep"></span>
-  <button id="zoom-out" class="ib" title="Zoom out">−</button>
-  <button id="zoom-label" class="ib wide" title="Reset zoom">100%</button>
-  <button id="zoom-in" class="ib" title="Zoom in">+</button>
+  <button id="zoom-out" class="ib" title="Zoom out" aria-label="Zoom out"><i data-icon="minus" data-size="18"></i></button>
+  <button id="zoom-label" class="ib wide" title="Reset zoom to 100%">100%</button>
+  <button id="zoom-in" class="ib" title="Zoom in" aria-label="Zoom in"><i data-icon="plus" data-size="18"></i></button>
+  <button id="btn-fit" class="ib" title="Zoom to fit (Shift+1)" aria-label="Zoom to fit"><i data-icon="fit"></i></button>
   <span class="vsep"></span>
-  <button id="btn-templates" class="tb" title="Insert a starter layout">Templates</button>
-  <button id="btn-search" class="ib" title="Search all boards (Ctrl+K)">⌕</button>
-  <button id="btn-trash" class="ib" title="Trash">🗑</button>
-  <button id="btn-menu" class="ib" title="Menu">⋯</button>
+  <button id="btn-templates" class="tb" title="Template library"><i data-icon="template" data-size="18"></i><span>Templates</span></button>
+  <button id="btn-search" class="ib" title="Search all boards (Ctrl+K)" aria-label="Search"><i data-icon="search"></i></button>
+  <button id="btn-present" class="ib" title="Present this board" aria-label="Present"><i data-icon="present"></i></button>
+  <button id="btn-trash" class="ib" title="Trash" aria-label="Trash"><i data-icon="trash"></i></button>
+  <button id="btn-theme" class="ib theme-toggle" title="Switch light / dark" aria-label="Switch light or dark mode"><i data-icon="moon"></i></button>
+  <button id="btn-menu" class="ib" title="Menu" aria-label="Menu"><i data-icon="menu"></i></button>
   <div id="menu" class="popmenu" hidden></div>
 </header>
 
 <aside id="toolbar" aria-label="Tools">
-  <button class="tool" data-type="note" title="Note — drag onto the canvas"><i>☰</i><span>Note</span></button>
-  <button class="tool" data-type="link" title="Link"><i>🔗</i><span>Link</span></button>
-  <button class="tool" data-type="todo" title="To-do list"><i>☑</i><span>To-do</span></button>
-  <button class="tool" data-type="line" title="Line / connector"><i>↗</i><span>Line</span></button>
-  <button class="tool" data-type="board" title="Sub-board"><i>▦</i><span>Board</span></button>
-  <button class="tool" data-type="column" title="Column"><i>▥</i><span>Column</span></button>
-  <button class="tool" data-type="comment" title="Comment"><i>💬</i><span>Comment</span></button>
-  <button class="tool" data-type="table" title="Table"><i>▤</i><span>Table</span></button>
+  <button class="tool" data-type="note" title="Note — drag onto the canvas"><i data-icon="note" data-size="22"></i><span>Note</span></button>
+  <button class="tool" data-type="link" title="Link"><i data-icon="link" data-size="22"></i><span>Link</span></button>
+  <button class="tool" data-type="todo" title="To-do list"><i data-icon="todo" data-size="22"></i><span>To-do</span></button>
+  <button class="tool" data-type="line" title="Line / connector"><i data-icon="line" data-size="22"></i><span>Line</span></button>
+  <button class="tool" data-type="board" title="Sub-board (a board inside this board)"><i data-icon="board" data-size="22"></i><span>Board</span></button>
+  <button class="tool" data-type="column" title="Column"><i data-icon="column" data-size="22"></i><span>Column</span></button>
+  <button class="tool" data-type="comment" title="Comment"><i data-icon="comment" data-size="22"></i><span>Comment</span></button>
+  <button class="tool" data-type="table" title="Table"><i data-icon="table" data-size="22"></i><span>Table</span></button>
   <hr>
-  <button class="tool" data-type="image" title="Image"><i>🖼</i><span>Image</span></button>
-  <button class="tool" data-type="file" title="File"><i>📎</i><span>File</span></button>
-  <button class="tool" data-type="sketch" title="Sketch"><i>✏️</i><span>Sketch</span></button>
+  <button class="tool" data-type="image" title="Image"><i data-icon="image" data-size="22"></i><span>Image</span></button>
+  <button class="tool" data-type="file" title="File"><i data-icon="file" data-size="22"></i><span>File</span></button>
+  <button class="tool" data-type="sketch" title="Sketch"><i data-icon="sketch" data-size="22"></i><span>Sketch</span></button>
 </aside>
 
 <main id="viewport" class="grid">
   <div id="world">
     <div id="canvas"></div>
     <svg id="lines" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="guides" xmlns="http://www.w3.org/2000/svg"></svg>
     <div id="drag-layer"></div>
   </div>
   <div id="marquee" hidden></div>
   <div id="context-bar" hidden></div>
+  <canvas id="minimap" width="360" height="240" hidden title="Overview: click or drag to move around"></canvas>
   <div id="empty" hidden>
     <h2>An empty board</h2>
     <p>Drag a tool from the left, double-click anywhere to drop a note, or drop images and files here.</p>
     <p class="muted">Tip: drag cards into columns and lists, and drag a line’s end onto a card to connect them.</p>
     <p><button id="empty-templates" class="btn primary" type="button">Start from a template</button></p>
   </div>
+  <div id="present-hud" hidden>
+    <button id="present-prev" class="ib" aria-label="Previous"><i data-icon="arrowLeft"></i></button>
+    <span id="present-count">1 / 1</span>
+    <button id="present-next" class="ib" aria-label="Next"><i data-icon="arrowRight"></i></button>
+    <button id="present-exit" class="ib" aria-label="Exit presentation" title="Exit (Esc)"><i data-icon="close"></i></button>
+  </div>
 </main>
 
-<dialog id="dlg-trash"><form method="dialog"><header><h3>Trash</h3><button class="ib" value="close">✕</button></header><div id="trash-list" class="list"></div><footer><button type="button" id="trash-empty" class="tb danger">Empty trash</button></footer></form></dialog>
-<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" placeholder="Search notes, tasks, links, tables, boards…" autocomplete="off"><button class="ib" value="close">✕</button></header><div id="search-list" class="list"></div></form></dialog>
-<dialog id="dlg-help"><form method="dialog"><header><h3>Shortcuts &amp; gestures</h3><button class="ib" value="close">✕</button></header>
+<aside id="tree-drawer" hidden aria-label="Boards">
+  <header><h3>Boards</h3><button id="tree-close" class="ib" type="button" aria-label="Close"><i data-icon="close"></i></button></header>
+  <div id="tree-list" role="tree"></div>
+  <footer class="muted">Boards can hold boards, as deep as you like. Click one to open it.</footer>
+</aside>
+
+<dialog id="dlg-trash"><form method="dialog"><header><h3>Trash</h3><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="trash-list" class="list"></div><footer><button type="button" id="trash-empty" class="tb danger">Empty trash</button></footer></form></dialog>
+<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" placeholder="Search notes, tasks, links, tables, boards…" autocomplete="off"><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="search-list" class="list"></div></form></dialog>
+<dialog id="dlg-help"><form method="dialog"><header><h3>Shortcuts &amp; gestures</h3><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header>
 <table class="keys">
 <tr><td>Double-click canvas</td><td>New note</td></tr><tr><td>Double-click note / board</td><td>Edit text / open board</td></tr>
 <tr><td>Drag tool → canvas, column or list</td><td>Create card there</td></tr><tr><td>Drag card onto column / list / board</td><td>Nest it</td></tr>
 <tr><td>Drag a line end onto a card</td><td>Connect</td></tr><tr><td>Shift-click, drag on empty canvas</td><td>Multi-select</td></tr>
-<tr><td>Space + drag, or wheel</td><td>Pan</td></tr><tr><td>Ctrl + wheel</td><td>Zoom</td></tr>
+<tr><td>Select 2+ cards</td><td>Align and distribute from the toolbar</td></tr><tr><td>Hold Alt while dragging</td><td>Turn snap guides off for that move</td></tr>
+<tr><td>Space + drag, or wheel</td><td>Pan</td></tr><tr><td>Ctrl + wheel</td><td>Zoom</td></tr><tr><td>Shift+1</td><td>Zoom to fit</td></tr>
 <tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>Undo / redo</td></tr><tr><td>Ctrl+D</td><td>Duplicate</td></tr>
+<tr><td>] / [</td><td>Bring to front / send to back</td></tr><tr><td>Ctrl+L</td><td>Lock / unlock position</td></tr>
 <tr><td>Delete</td><td>Move to trash</td></tr><tr><td>Arrow keys (Shift = ×10)</td><td>Nudge</td></tr>
-<tr><td>Ctrl+K</td><td>Search</td></tr><tr><td>Paste</td><td>Link, note or image card</td></tr>
+<tr><td>Ctrl+K</td><td>Search</td></tr><tr><td>P</td><td>Present (arrows to move, Esc to exit)</td></tr><tr><td>Paste</td><td>Link, note or image card</td></tr>
 </table></form></dialog>
 <dialog id="dlg-templates" class="tpl-dlg"><div class="tpl-wrap">
   <aside class="tpl-side"><input id="tpl-search" type="search" placeholder="Search templates" autocomplete="off"><nav id="tpl-cats" aria-label="Template categories"></nav></aside>
-  <section class="tpl-main"><header><h3 id="tpl-title">All templates</h3><button id="tpl-close" class="ib" type="button" aria-label="Close">✕</button></header>
+  <section class="tpl-main"><header><h3 id="tpl-title">All templates</h3><button id="tpl-close" class="ib" type="button" aria-label="Close"><i data-icon="close"></i></button></header>
     <div id="tpl-grid" class="tpl-grid"></div><footer id="tpl-foot" class="tpl-foot"></footer></section></div></dialog>
 <dialog id="dlg-savetpl"><form id="savetpl-form" method="dialog" class="newpass"><header><h3>Save this board as a template</h3></header>
   <div class="body"><input id="savetpl-name" maxlength="80" placeholder="Template name" autocomplete="off" required><p class="muted" style="margin:0;font-size:12.5px">Everything on this board, including nested boards, is saved. Using the template later adds a copy.</p><p id="savetpl-msg" class="auth-msg" hidden></p></div>

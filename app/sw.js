@@ -1,11 +1,11 @@
-// Corkboard service worker: offline app shell.
+// Lorenote service worker: offline app shell.
 // Same-origin files use network-first (always fresh when online, cached copy when offline).
 // Pinned CDN modules (supabase-js) are immutable, so they are cache-first. API calls are never touched.
-const SHELL_CACHE = 'corkboard-shell-v3';
-const CDN_CACHE = 'corkboard-cdn-v1';
+const SHELL_CACHE = 'lorenote-shell-v4';
+const CDN_CACHE = 'lorenote-cdn-v1';
 const SHELL = ['./', 'index.html', 'styles.css', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png',
-  'src/main.js', 'src/app.js', 'src/store.js', 'src/model.js', 'src/view.js', 'src/interact.js', 'src/landing.js', 'src/backend.js', 'src/templates.js', 'src/template-ui.js', 'src/files.js'];
+  'src/main.js', 'src/app.js', 'src/store.js', 'src/model.js', 'src/view.js', 'src/interact.js', 'src/landing.js', 'src/backend.js', 'src/templates.js', 'src/template-ui.js', 'src/files.js', 'src/icons.js', 'src/theme.js', 'src/layout.js', 'src/minimap.js', 'src/present.js', 'src/tree.js'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(SHELL_CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 

@@ -1,4 +1,7 @@
 // Board view: incremental DOM rendering of elements, connector lines, selection and the context bar.
+import { icon } from './icons.js';
+import * as layout from './layout.js';
+import { applyTheme } from './theme.js';
 import { COLORS, BOARD_COLORS, BOARD_ICONS, TYPE_LABEL, isContainer, makeElement, sanitizeHtml, hostOf, normalizeUrl } from './model.js';
 
 const h = (tag, attrs = {}, ...kids) => {
@@ -18,7 +21,7 @@ const SKETCH_VW = 300;
 
 export class View {
   constructor(store, dom) {
-    this.store = store; this.dom = dom;
+    this.store = store; this.dom = dom; this.layout = layout;
     this.boardId = store.rootId;
     this.selection = new Set();
     this.nodes = new Map();           // id -> rec {node, body, update, el}
@@ -46,7 +49,7 @@ export class View {
     const g = 24 * this.scale;
     viewport.style.backgroundSize = `${g}px ${g}px`;
     viewport.style.backgroundPosition = `${this.tx}px ${this.ty}px`;
-    this.updateLines(); this.updateContextBar();
+    this.updateLines(); this.updateContextBar(); this.onViewChange?.();
   }
 
   /** screen -> world coordinates */
@@ -59,12 +62,44 @@ export class View {
     return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
   }
 
+
+  // ---------------------------------------------------------------- camera
+  /** smoothly move the camera to {tx, ty, scale} */
+  animateTo(t, ms = 450) {
+    cancelAnimationFrame(this._anim); const from = { tx: this.tx, ty: this.ty, scale: this.scale }; const t0 = performance.now();
+    if (!ms || matchMedia('(prefers-reduced-motion: reduce)').matches) { Object.assign(this, { tx: t.tx, ty: t.ty, scale: t.scale }); this.applyTransform(); this.onZoom?.(); return; }
+    const ease = (x) => 1 - Math.pow(1 - x, 3);
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / ms), k = ease(p);
+      this.tx = from.tx + (t.tx - from.tx) * k; this.ty = from.ty + (t.ty - from.ty) * k; this.scale = from.scale + (t.scale - from.scale) * k; this.applyTransform();
+      if (p < 1) this._anim = requestAnimationFrame(step); else this.onZoom?.();
+    };
+    this._anim = requestAnimationFrame(step);
+  }
+  stopAnimation() { cancelAnimationFrame(this._anim); }
+  /** fit a world rect {x,y,w,h} into the viewport */
+  fitRect(r, { pad = 60, maxScale = 1.5, animate = false } = {}) {
+    const vp = this.dom.viewport.getBoundingClientRect(); const s = Math.max(0.1, Math.min(maxScale, (vp.width - pad * 2) / Math.max(1, r.w), (vp.height - pad * 2) / Math.max(1, r.h)));
+    const t = { scale: s, tx: vp.width / 2 - (r.x + r.w / 2) * s, ty: vp.height / 2 - (r.y + r.h / 2) * s };
+    if (animate) this.animateTo(t); else { Object.assign(this, t); this.applyTransform(); this.onZoom?.(); }
+  }
+  /** fit everything on the board */
+  fitAll(opts = {}) {
+    const rects = [];
+    for (const e of this.store.children(this.boardId, 'canvas')) {
+      if (e.type === 'line') { const b = this.lineBounds(e); const a = this.toWorld(b.left, b.top), z = this.toWorld(b.right, b.bottom); rects.push({ x: a.x, y: a.y, w: z.x - a.x, h: z.y - a.y }); } else { const r = this.worldRect(e.id); if (r) rects.push(r); }
+    }
+    if (!rects.length) return this.animateTo({ tx: 40, ty: 40, scale: 1 }, opts.animate ? 350 : 0);
+    const x1 = Math.min(...rects.map((r) => r.x)), y1 = Math.min(...rects.map((r) => r.y)), x2 = Math.max(...rects.map((r) => r.x + r.w)), y2 = Math.max(...rects.map((r) => r.y + r.h));
+    this.fitRect({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 }, { pad: 50, maxScale: 1.25, ...opts });
+  }
+
   // ---------------------------------------------------------------- render
   render() {
     const store = this.store; const board = this.board;
     if (!board) return;
     if (board.id !== this.boardId) this.boardId = board.id;
-    document.body.dataset.theme = store.prefs.theme;
+    if (document.documentElement.dataset.theme !== store.prefs.theme) applyTheme(store.prefs.theme);
     this.dom.viewport.classList.toggle('grid', store.prefs.grid);
     const seen = new Set();
     const place = (parentId, host, section) => {
@@ -101,7 +136,7 @@ export class View {
     n.style.width = e.w ? e.w + 'px' : '';
     if (e.section === 'canvas') { n.style.left = e.x + 'px'; n.style.top = e.y + 'px'; n.style.zIndex = String(e.z || 0); n.classList.remove('stacked'); }
     else { n.style.left = n.style.top = n.style.zIndex = ''; n.classList.add('stacked'); n.style.width = ''; }
-    n.style.setProperty('--card-bg', e.color || '');
+    n.style.setProperty('--card-bg', e.color || ''); n.classList.toggle('locked', !!e.locked);
     n.classList.toggle('tinted', !!e.color);
   }
 
@@ -181,8 +216,8 @@ export class View {
     const vr = this.dom.viewport.getBoundingClientRect();
     const top = Math.min(...rects.map((r) => r.top)), left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
     const sig = els.map((e) => e.id + e.type + (this.drawing === e.id)).join();
-    if (bar.dataset.sig !== sig || bar.dataset.penSig !== JSON.stringify(this.pen) + JSON.stringify(els.map((e) => e.color))) {
-      bar.dataset.sig = sig; bar.dataset.penSig = JSON.stringify(this.pen) + JSON.stringify(els.map((e) => e.color));
+    if (bar.dataset.sig !== sig || bar.dataset.penSig !== JSON.stringify(this.pen) + JSON.stringify(els.map((e) => [e.color, !!e.locked]))) {
+      bar.dataset.sig = sig; bar.dataset.penSig = JSON.stringify(this.pen) + JSON.stringify(els.map((e) => [e.color, !!e.locked]));
       bar.replaceChildren(...this.contextButtons(els));
     }
     bar.hidden = false; bar.style.left = '0px';
@@ -206,7 +241,8 @@ export class View {
 
   contextButtons(els) {
     const store = this.store; const out = [];
-    const btn = (label, title, fn, cls = '') => h('button', { class: 'cb ' + cls, title, 'data-nodrag': '', onmousedown: (ev) => ev.preventDefault(), onclick: fn }, label);
+    const btn = (label, title, fn, cls = '') => h('button', { class: 'cb ' + cls, title, 'aria-label': title, 'data-nodrag': '', onmousedown: (ev) => ev.preventDefault(), onclick: fn }, label);
+    const ibtn = (name, title, fn, cls = '') => { const b = btn('', title, fn, 'icon ' + cls); b.innerHTML = icon(name, 18); return b; };
     const sep = () => h('span', { class: 'cb-sep' });
     const one = els.length === 1 ? els[0] : null;
     const edit = (fn, label = 'Edit') => store.commit(els.map((e) => ({ id: e.id, after: fn(e) })), { label });
@@ -218,6 +254,15 @@ export class View {
         btn('Clear', 'Clear sketch', () => edit((e) => ({ ...e, content: { ...e.content, strokes: [] } }), 'Clear sketch')),
         btn('Done', 'Finish drawing', () => { this.drawing = null; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'));
       return out;
+    }
+
+    // ---- arrange several cards: align / distribute
+    const free = els.filter((e) => e.type !== 'line' && e.section === 'canvas');
+    if (free.length >= 2) {
+      const L = this.layout;
+      for (const [name, mode, t] of [['align-left', 'left', 'Align left edges'], ['align-center', 'center', 'Align centres horizontally'], ['align-right', 'right', 'Align right edges'], ['align-top', 'top', 'Align top edges'], ['align-middle', 'middle', 'Align centres vertically'], ['align-bottom', 'bottom', 'Align bottom edges']]) out.push(ibtn(name, t, () => L.align(store, this, mode)));
+      if (free.length >= 3) out.push(ibtn('dist-h', 'Distribute horizontally (equal gaps)', () => L.distribute(store, this, 'h')), ibtn('dist-v', 'Distribute vertically (equal gaps)', () => L.distribute(store, this, 'v')));
+      out.push(sep());
     }
 
     if (one?.type === 'note') {
@@ -253,8 +298,16 @@ export class View {
       out.push(sep());
     }
     if (one?.type === 'link' && one.content.url) out.push(btn('Refresh preview', 'Fetch the title and image again', () => this.onLinkPreview?.(one.id, one.content.url, true)), sep());
-    if (one?.type === 'image') out.push(btn(one.content.src ? 'Replace' : 'Choose image', 'Pick an image file', () => this.onReplaceImage?.(one.id)), sep());
-    out.push(btn('Duplicate', 'Duplicate (Ctrl+D)', () => this.onDuplicate?.()), btn('Delete', 'Move to trash (Del)', () => this.onDelete?.(), 'danger'));
+    if (one?.type === 'image') out.push(btn(one.content.src || one.content.path ? 'Replace' : 'Choose image', 'Pick an image file', () => this.onReplaceImage?.(one.id)), sep());
+
+    // ---- arrange: stacking order and lock
+    const cards = els.filter((e) => e.type !== 'line' && e.type !== 'task');
+    if (cards.length) {
+      const L = this.layout; const allLocked = cards.every((e) => e.locked);
+      if (cards.some((e) => e.section === 'canvas')) out.push(ibtn('front', 'Bring to front ( ] )', () => L.stack(store, this, 'front')), ibtn('back', 'Send to back ( [ )', () => L.stack(store, this, 'back')));
+      out.push(ibtn(allLocked ? 'unlock' : 'lock', allLocked ? 'Unlock position (Ctrl+L)' : 'Lock position (Ctrl+L)', () => L.toggleLock(store, this), allLocked ? 'on' : ''), sep());
+    }
+    out.push(ibtn('duplicate', 'Duplicate (Ctrl+D)', () => this.onDuplicate?.()), ibtn('trash', 'Move to trash (Del)', () => this.onDelete?.(), 'danger'));
     return out;
   }
 }

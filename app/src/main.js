@@ -2,6 +2,8 @@
 import baseConfig from '../config.js';
 import { createBackend } from './backend.js';
 import { showLanding, showNewPassword } from './landing.js';
+import { hydrateIcons } from './icons.js';
+import { applyTheme, bindThemeToggles, savedTheme } from './theme.js';
 
 // optional private overrides (git-ignored), e.g. the Supabase URL + anon key
 const localConfig = await import('../config.local.js').then((m) => m.default).catch(() => ({}));
@@ -17,6 +19,7 @@ window.corkboardAuth = !!backend;
 if (backend) backend.onAuthChange((u, event) => { if (event === 'PASSWORD_RECOVERY') showNewPassword(backend); else location.reload(); });
 
 if (backend && !user && !guest) {
+  hydrateIcons(); applyTheme(savedTheme()); bindThemeToggles(savedTheme, applyTheme);
   showLanding({ backend, onGuest: () => { localStorage.setItem('corkboard.guest', '1'); location.reload(); } });
 } else {
   const { startApp } = await import('./app.js');

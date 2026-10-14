@@ -1,4 +1,4 @@
-// Corkboard store: flat element map, patch-based commits, client-side undo/redo,
+// Lorenote store: flat element map, patch-based commits, client-side undo/redo,
 // IndexedDB persistence (per account), BroadcastChannel multi-tab sync and optional cloud sync.
 //
 // A patch is { id, before, after } where before/after are whole element snapshots (or null).
@@ -266,10 +266,10 @@ export class Store {
     } finally { this.flushing = false; }
   }
 
-  exportJSON() { return JSON.stringify({ app: 'corkboard', version: 1, rootId: this.rootId, elements: this.elements }, null, 1); }
+  exportJSON() { return JSON.stringify({ app: 'lorenote', version: 1, rootId: this.rootId, elements: this.elements }, null, 1); }
   importJSON(text) {
     const d = JSON.parse(text);
-    if (d.app !== 'corkboard' || !d.elements || !d.rootId) throw new Error('Not a Corkboard export');
+    if ((d.app !== 'lorenote' && d.app !== 'corkboard') || !d.elements || !d.rootId) throw new Error('Not a Lorenote export');
     for (const id of Object.keys(this.elements)) this.pending.add(id);        // so removals reach the cloud
     this.elements = d.elements; this.rootId = d.rootId; this.undoStack = []; this.redoStack = [];
     for (const id of Object.keys(this.elements)) this.pending.add(id);

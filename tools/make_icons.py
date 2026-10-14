@@ -1,8 +1,8 @@
-"""Render the Corkboard app icons (PNG, stdlib only).  usage: python tools/make_icons.py"""
+"""Render the Lorenote app icons (PNG, stdlib only).  usage: python tools/make_icons.py"""
 import struct, zlib, os
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'icons')
-ORANGE = (232, 144, 58); WHITE = (255, 255, 255)
+ORANGE = (91, 91, 214); WHITE = (255, 255, 255)   # brand indigo
 
 def png(path, size, pad=0.0, rounded=True, bg=ORANGE):
     s = size; rows = []

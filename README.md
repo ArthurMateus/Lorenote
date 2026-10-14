@@ -1,7 +1,7 @@
 # Lorenote
 
 A visual board app (notes, links, to-do lists, columns, sub-boards, comments, tables, images, files, sketches and connectors on an infinite canvas) with accounts, cross-device sync, and phone/tablet/desktop support.
-Working title in the code: **Corkboard**.
+The code and internal storage keys still use the earlier working title "corkboard" (so existing data keeps working).
 
 The product behaviour is based on observing an existing web app with [REA](https://github.com) reverse-engineering tools: see [`SPEC.md`](SPEC.md). Nothing from that product's code, assets, branding or copy is used; this is an original implementation built from observed behaviour.
 
@@ -25,4 +25,5 @@ Runs fully local by default. To turn on accounts and sync, follow "Cloud account
 
 Done: canvas + all card types, nesting, connectors, undo/redo, trash, search, a 41-template library with picker and account-bound "My templates", import/export, Supabase accounts (email, magic link, Google), live sync + offline queue, touch gestures, phone layout, installable offline PWA.
 Also done: cloud file storage with offline cache and migration, server-side link previews (Edge Function).
-Next: layout and alignment tools.
+Layout tools (align, distribute, snap guides, lock, stacking), minimap, zoom-to-fit, presentation mode, boards tree, light/dark toggle and the Lorenote brand refresh are in.
+Next ideas: sharing and collaboration, real-device testing, comment mentions.
