@@ -47,24 +47,37 @@ export function defaultContent(type) {
   }
 }
 
-const ALLOWED_TAGS = new Set(['B', 'I', 'U', 'S', 'STRIKE', 'STRONG', 'EM', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P', 'A', 'CODE', 'H2']);
-/** whitelist-based HTML sanitiser for note bodies */
+const ALLOWED_TAGS = new Set(['b', 'i', 'u', 's', 'strike', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'p', 'a', 'code', 'h2']);
+/** elements whose whole subtree is discarded (not unwrapped): scripts, styles, embeds, foreign-namespace content */
+const DROP_TAGS = new Set(['script', 'style', 'template', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'noscript', 'noembed', 'xmp', 'plaintext', 'title', 'head', 'meta', 'link', 'base', 'svg', 'math', 'textarea', 'select', 'option', 'audio', 'video', 'canvas']);
+const XHTML = 'http://www.w3.org/1999/xhtml';
+
+/**
+ * Allow-list HTML sanitiser for note bodies. It does NOT clean the parsed tree in place: it builds a brand-new tree
+ * containing only allowed elements, text and (http/https) links, so nothing unexpected can ride along.
+ * Disallowed wrappers are unwrapped (their safe text and allowed children are kept); dangerous ones are dropped whole.
+ */
 export function sanitizeHtml(html) {
-  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
-  const walk = (node) => {
-    for (const child of [...node.childNodes]) {
-      if (child.nodeType === 3) continue;
-      if (child.nodeType !== 1 || !ALLOWED_TAGS.has(child.tagName)) { child.replaceWith(...child.childNodes); continue; }
-      for (const a of [...child.attributes]) {
-        const keep = child.tagName === 'A' && a.name === 'href' && /^https?:\/\//i.test(a.value);
-        if (!keep) child.removeAttribute(a.name);
+  const doc = new DOMParser().parseFromString(`<body>${String(html ?? '')}</body>`, 'text/html');   // inert document: nothing loads or runs
+  const out = doc.createElement('div');
+  const copy = (src, dst, depth) => {
+    if (depth > 40) return;                                      // absurdly deep nesting: drop the rest
+    for (const n of src.childNodes) {
+      if (n.nodeType === 3) { dst.append(doc.createTextNode(n.data)); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.localName.toLowerCase();
+      if (n.namespaceURI !== XHTML || DROP_TAGS.has(tag)) continue;
+      if (!ALLOWED_TAGS.has(tag)) { copy(n, dst, depth + 1); continue; }       // unwrap, but still sanitise the children
+      const el = doc.createElement(tag);
+      if (tag === 'a') {
+        const href = n.getAttribute('href') || '';
+        if (/^https?:\/\//i.test(href.trim())) { el.setAttribute('href', href.trim()); el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
       }
-      if (child.tagName === 'A') { child.setAttribute('target', '_blank'); child.setAttribute('rel', 'noopener noreferrer'); }
-      walk(child);
+      copy(n, el, depth + 1); dst.append(el);
     }
   };
-  walk(doc.body);
-  return doc.body.innerHTML;
+  copy(doc.body, out, 0);
+  return out.innerHTML;
 }
 
 export const stripHtml = (html) => { const d = document.createElement('div'); d.innerHTML = sanitizeHtml(html || ''); return d.textContent || ''; };
@@ -84,7 +97,16 @@ export function elementText(e) {
 }
 
 export function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } }
-export function normalizeUrl(u) { const t = u.trim(); if (!t) return ''; return /^[a-z][a-z0-9+.-]*:\/\//i.test(t) ? t : 'https://' + t; }
+/** only http(s) URLs are ever used as links, images or previews (blocks javascript:, data:, file: and friends) */
+export function safeWebUrl(u) { try { const x = new URL(String(u || '')); return x.protocol === 'http:' || x.protocol === 'https:' ? x.toString() : ''; } catch { return ''; } }
+/** turn what a person typed into a safe http(s) URL, or '' */
+export function normalizeUrl(u) {
+  const t = String(u || '').trim(); if (!t) return '';
+  const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(t) && !/^[a-z0-9.-]+:\d+(\/|$)/i.test(t);      // "localhost:3000" is a host, not a scheme
+  return safeWebUrl(hasScheme ? t : 'https://' + t);
+}
+/** accept only plain CSS colours (hex, name, rgb/hsl, var) so stored data can never inject markup into SVG or styles */
+export const safeColor = (c, fallback = '') => (typeof c === 'string' && /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(rgb|hsl)a?\([\d\s.,%/]+\)|var\(--[a-z0-9-]+\))$/i.test(c.trim()) ? c.trim() : fallback);
 
 /** Starter layouts. Each returns a list of element specs built relative to a parent board. */
 export const TEMPLATES = {

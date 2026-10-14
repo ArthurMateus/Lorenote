@@ -4,7 +4,7 @@
 //   - the built-in library below (authored here),
 //   - boards a user saves as their own template (converted from the flat element map),
 // so one instantiate() and one thumbnail renderer cover both.
-import { makeElement, defaultContent, COLORS } from './model.js';
+import { makeElement, defaultContent, COLORS, safeColor } from './model.js';
 import { uid } from './store.js';
 
 // ------------------------------------------------------------------ sizes (estimates, for layout + thumbnails)
@@ -120,12 +120,12 @@ export function thumbSVG(nodes, { w = 220, h = 130 } = {}) {
   }
   const rect = (x, y, rw, rh, fill, r = 2, stroke) => `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(1.5, rw).toFixed(1)}" height="${Math.max(1.5, rh).toFixed(1)}" rx="${r}" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width=".8"` : ''}/>`;
   for (const it of items) {
-    const { nd } = it; const x = ox + it.x * k, y = oy + it.y * k, rw = it.w * k, rh = it.h * k; const fill = nd.color || TYPE_FILL[nd.type] || '#fff';
-    if (nd.type === 'board') { out.push(rect(x + rw * .1, y, rw * .8, rh * .8, (nd.content?.tint || '#7aa2f7') + '55', 4, nd.content?.tint || '#7aa2f7')); continue; }
+    const { nd } = it; const x = ox + it.x * k, y = oy + it.y * k, rw = it.w * k, rh = it.h * k; const fill = safeColor(nd.color) || TYPE_FILL[nd.type] || '#fff';
+    if (nd.type === 'board') { const tint = safeColor(nd.content?.tint, '#7aa2f7'); out.push(`<rect x="${(x + rw * .1).toFixed(1)}" y="${y.toFixed(1)}" width="${(rw * .8).toFixed(1)}" height="${(rh * .8).toFixed(1)}" rx="4" fill="${tint}" fill-opacity=".33" stroke="${tint}" stroke-width=".8"/>`); continue; }
     out.push(rect(x, y, rw, rh, fill, 2.5, '#00000022'));
     if (nd.type === 'column') {
       let cy = y + 70 * k;
-      for (const kid of nd.kids || []) { const ks = estSize({ ...kid, w: it.w - 36 }); out.push(rect(x + 8 * k, cy, rw - 16 * k, ks.h * k, kid.type === 'image' ? '#cfd3dc' : (kid.color || '#fff'), 1.5)); cy += (ks.h + 8) * k; }
+      for (const kid of nd.kids || []) { const ks = estSize({ ...kid, w: it.w - 36 }); out.push(rect(x + 8 * k, cy, rw - 16 * k, ks.h * k, kid.type === 'image' ? '#cfd3dc' : (safeColor(kid.color) || '#fff'), 1.5)); cy += (ks.h + 8) * k; }
     } else if (nd.type === 'todo') {
       (nd.kids || []).slice(0, 6).forEach((t, n) => { const cy = y + (30 + n * 28) * k; out.push(rect(x + 8 * k, cy, 7 * k, 7 * k, '#fff', 1, '#9aa'), rect(x + 20 * k, cy + 2 * k, rw * .5, 3 * k, '#c9ccd4', 1)); });
     } else if (nd.type === 'table') {

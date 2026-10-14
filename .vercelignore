@@ -1,0 +1,11 @@
+# Files that must never be uploaded to the deployment.
+# NOTE: app/config.local.js (Supabase URL + public anon key) IS deployed on purpose: the browser needs it.
+.edge-profile
+.brave-profile
+.claude
+evidence
+screenshots
+tools
+node_modules
+*.md
+!app/**/*.md

@@ -2,7 +2,7 @@
 import { icon } from './icons.js';
 import * as layout from './layout.js';
 import { applyTheme } from './theme.js';
-import { COLORS, BOARD_COLORS, BOARD_ICONS, TYPE_LABEL, isContainer, makeElement, sanitizeHtml, hostOf, normalizeUrl } from './model.js';
+import { COLORS, BOARD_COLORS, BOARD_ICONS, TYPE_LABEL, isContainer, makeElement, sanitizeHtml, hostOf, normalizeUrl, safeWebUrl } from './model.js';
 
 const h = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
@@ -341,7 +341,7 @@ const BUILDERS = {
     ed.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') ed.blur(); ev.stopPropagation(); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
     rec.node.append(ed);
-    rec.update = (el) => { if (document.activeElement !== ed && ed.innerHTML !== el.content.html) ed.innerHTML = el.content.html; };
+    rec.update = (el) => { if (document.activeElement === ed) return; const clean = sanitizeHtml(el.content.html || ''); if (ed.innerHTML !== clean) ed.innerHTML = clean; };      // sanitised again on every render: stored data is never trusted
   },
 
   task(rec, e, view) {
@@ -414,9 +414,9 @@ const BUILDERS = {
     rec.update = (el) => {
       const c = el.content; const has = !!c.url; input.hidden = has; view_.hidden = !has;
       if (has) {
-        host.textContent = c.siteName || hostOf(c.url); if (document.activeElement !== title) title.textContent = c.title; open.href = c.url;
+        host.textContent = c.siteName || hostOf(c.url); if (document.activeElement !== title) title.textContent = c.title; const safe = safeWebUrl(c.url); if (safe) { open.href = safe; open.hidden = false; } else { open.removeAttribute('href'); open.hidden = true; }
         desc.textContent = c.description || ''; desc.hidden = !c.description;
-        if (c.image) { if (img.getAttribute('src') !== c.image) { img.hidden = false; img.src = c.image; } } else { img.hidden = true; img.removeAttribute('src'); }
+        const imgUrl = safeWebUrl(c.image); if (imgUrl) { if (img.getAttribute('src') !== imgUrl) { img.hidden = false; img.src = imgUrl; } } else { img.hidden = true; img.removeAttribute('src'); }
       }
     };
   },
@@ -492,7 +492,7 @@ const BUILDERS = {
       dl.textContent = 'Download';
     });
     rec.node.append(h('div', { class: 'file-ico' }, '📄'), h('div', { class: 'file-info' }, name, meta, dl));
-    rec.update = (el) => { const c = el.content; name.textContent = c.name; meta.textContent = fmtSize(c.size); if (c.path) dl.removeAttribute('download'); else { dl.href = c.src; dl.download = c.name; } };
+    rec.update = (el) => { const c = el.content; name.textContent = c.name; meta.textContent = fmtSize(c.size); if (c.path) dl.removeAttribute('download'); else { dl.href = /^(data:|blob:)/i.test(c.src || '') ? c.src : '#'; dl.download = c.name; } };
   },
 
   sketch(rec, e, view) {

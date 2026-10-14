@@ -1,6 +1,6 @@
 // Supabase adapter. Returns null when no project is configured, so the app runs fully local.
 // The adapter surface is deliberately small so another backend (or a test double) can replace it.
-const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+const SUPABASE_JS = '../vendor/supabase-js.js';          // vendored copy (see vendor/README.md): no third-party script at runtime
 const CHUNK = 150;
 
 export async function createBackend(config) {
