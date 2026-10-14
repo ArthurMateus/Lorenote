@@ -138,6 +138,7 @@ export async function startApp({ backend = null, user = null } = {}) {
     ['Zoom to fit', () => view.fitAll({ animate: true })],
     ...(store.prefs.theme !== 'system' ? [['Follow system light/dark', () => store.setPref('theme', 'system')]] : []),
     [`Minimap: ${store.prefs.minimap !== false ? 'on' : 'off'}`, () => { store.setPref('minimap', store.prefs.minimap === false); mm.schedule(); }],
+    [`Scroll & zoom speed: ${store.prefs.sensitivity || 'normal'}`, () => { const o = ['low', 'normal', 'high']; store.setPref('sensitivity', o[(o.indexOf(store.prefs.sensitivity || 'normal') + 1) % 3]); toast(`Scroll & zoom speed: ${store.prefs.sensitivity}`); }],
     [`Snap guides: ${store.prefs.guides !== false ? 'on' : 'off'}`, () => store.setPref('guides', store.prefs.guides === false)],
     [`Grid: ${store.prefs.grid ? 'on' : 'off'}`, () => store.setPref('grid', !store.prefs.grid)],
     [`Snap to grid: ${store.prefs.snap ? 'on' : 'off'}`, () => store.setPref('snap', !store.prefs.snap)],

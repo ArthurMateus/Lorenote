@@ -45,6 +45,10 @@ Boards nest to any depth: drop a **Board** card anywhere (on a board, in a colum
 - **Zoom to fit** (Shift+1 or the frame button) and a **minimap** (bottom right; click or drag to move; toggle in the menu).
 - **Present** (P): hides the interface and flies from the whole board to each card in reading order. → / Space next, ← back, Esc exits; clicking the right side advances. Read-only while presenting.
 
+## Pointer feel
+
+Presses become drags only after the pointer travels 7 px (mouse), 6 px (pen) or 10 px (finger), so a slightly wobbly click no longer nudges a card. Mouse-wheel and trackpad deltas are normalised and clamped: a wheel notch pans 60 px and Ctrl+wheel zooms about 13% per notch (trackpad pinch stays smooth). *Scroll & zoom speed* (low / normal / high) is in the ⋯ menu.
+
 ## Look and feel
 
 Lorenote has a one-click **light/dark toggle** (sun/moon in the header, also on the sign-in page). The choice follows you (stored with your profile when signed in) and *Follow system light/dark* in the ⋯ menu returns to automatic. Icons are an inline SVG set (`src/icons.js`) that follows the theme; colours, radii and shadows are CSS variables at the top of `styles.css`.

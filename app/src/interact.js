@@ -11,6 +11,9 @@ export function setupInteractions(view, toast) {
   const { store, dom } = view;
   const vp = dom.viewport;
   let space = false;
+  const SPEED = { low: 0.55, normal: 1, high: 1.6 };                       // scroll / zoom speed multipliers (menu setting)
+  /** pixels the pointer must travel before a press becomes a drag; fingers wobble more than mice */
+  const dragThreshold = (e) => (e.pointerType === 'touch' ? 10 : e.pointerType === 'pen' ? 6 : 7);
 
   // ------------------------------------------------------------------ gesture tracking (cancellable, for multi-touch)
   let gesture = null;
@@ -128,7 +131,7 @@ export function setupInteractions(view, toast) {
     const tool = ev.target.closest('.tool[data-type]'); if (!tool || ev.button !== 0) return;
     ev.preventDefault(); const type = tool.dataset.type; const sx = ev.clientX, sy = ev.clientY; let ghost = null;
     const move = (e) => {
-      if (!ghost && Math.hypot(e.clientX - sx, e.clientY - sy) > 5) { ghost = tool.cloneNode(true); ghost.classList.add('ghost'); document.body.append(ghost); }
+      if (!ghost && Math.hypot(e.clientX - sx, e.clientY - sy) > 7) { ghost = tool.cloneNode(true); ghost.classList.add('ghost'); document.body.append(ghost); }
       if (ghost) { ghost.style.left = e.clientX - 24 + 'px'; ghost.style.top = e.clientY - 24 + 'px'; markDrop(e.clientX, e.clientY, [type]); }
     };
     const up = (e) => {
@@ -202,7 +205,7 @@ export function setupInteractions(view, toast) {
     };
     const move = (e) => {
       if (blocked) return;
-      if (!dragging) { if (Math.hypot(e.clientX - sx, e.clientY - sy) < 4) return; begin(); if (blocked) return; }
+      if (!dragging) { if (Math.hypot(e.clientX - sx, e.clientY - sy) < dragThreshold(ev)) return; begin(); if (blocked) return; }
       const p = view.toWorld(e.clientX, e.clientY);
       let ox = 0, oy = 0, guides = [];
       if (store.prefs.guides !== false && !e.altKey && others.length && !containerAt(e.clientX, e.clientY, items.map((i) => i.e.type), dragIds)) {
@@ -346,7 +349,7 @@ export function setupInteractions(view, toast) {
     const r = vp.getBoundingClientRect(); const sx = ev.clientX, sy = ev.clientY; let moved = false; const base = ev.shiftKey ? new Set(view.selection) : new Set();
     const box = dom.marquee;
     const move = (e) => {
-      if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 4) return; moved = true;
+      if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return; moved = true;
       const x1 = Math.min(sx, e.clientX), y1 = Math.min(sy, e.clientY), x2 = Math.max(sx, e.clientX), y2 = Math.max(sy, e.clientY);
       box.hidden = false; Object.assign(box.style, { left: x1 - r.left + 'px', top: y1 - r.top + 'px', width: x2 - x1 + 'px', height: y2 - y1 + 'px' });
       const hit = new Set(base);
@@ -418,8 +421,11 @@ export function setupInteractions(view, toast) {
 
   vp.addEventListener('wheel', (ev) => {
     ev.preventDefault(); if (document.body.classList.contains('presenting')) return; view.stopAnimation?.();
-    if (ev.ctrlKey || ev.metaKey) zoomAt(ev.clientX, ev.clientY, Math.exp(-ev.deltaY * 0.01));
-    else { view.tx -= ev.deltaX; view.ty -= ev.deltaY; view.applyTransform(); }
+    // normalise wheel units (pixels / lines / pages) and clamp, so a mouse notch and a trackpad swipe both feel gentle
+    const unit = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? vp.clientHeight : 1; const sens = SPEED[store.prefs.sensitivity] ?? 1;
+    const dx = Math.max(-120, Math.min(120, ev.deltaX * unit)), dy = Math.max(-120, Math.min(120, ev.deltaY * unit));
+    if (ev.ctrlKey || ev.metaKey) zoomAt(ev.clientX, ev.clientY, Math.exp(-Math.max(-60, Math.min(60, dy)) * 0.0022 * sens));    // one mouse notch is about 12%; pinch on a trackpad stays smooth
+    else { view.tx -= dx * 0.6 * sens; view.ty -= dy * 0.6 * sens; view.applyTransform(); }
   }, { passive: false });
 
   function zoomAt(cx, cy, k) {
