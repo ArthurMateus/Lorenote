@@ -56,5 +56,5 @@ export function setupTree(view, store) {
   const toggle = () => (drawer.hidden ? show() : hide());
   document.querySelector('#btn-tree').onclick = toggle; document.querySelector('#tree-close').onclick = hide;
   store.subscribe((i) => { if (!drawer.hidden && (i.patches.length || i.reset)) render(); }); window.addEventListener('hashchange', () => setTimeout(render, 0));
-  return { show, hide, toggle, render, childBoards, isFav, toggleFav };
+  return { drawerHidden: () => drawer.hidden, show, hide, toggle, render, childBoards, isFav, toggleFav };
 }

@@ -11,6 +11,7 @@ import { setupPresent } from './present.js';
 import { setupTree } from './tree.js';
 import { t, getLang, setLang, langName, LANGS } from './i18n.js';
 import { openDatabase } from './database.js';
+import { setupSettings } from './settings.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -131,29 +132,22 @@ export async function startApp({ backend = null, user = null } = {}) {
   const onOff = (on) => t(on ? 'common.on' : 'common.off');
   const langMenu = () => popMenu($('#menu'), $('#btn-menu'), LANGS.map((l) => [(l.code === getLang() ? '✓ ' : '\u2003') + l.name, () => setLang(l.code)]));
   $('#btn-menu').onclick = () => popMenu($('#menu'), $('#btn-menu'), [
-    ...(user ? [[t('menu.signedIn', { email: user.email }), () => {}], [t('menu.signOut'), async () => { await backend.signOut(); localStorage.removeItem('corkboard.guest'); location.reload(); }]] : (window.corkboardAuth ? [[t('menu.signIn'), () => { localStorage.removeItem('corkboard.guest'); location.reload(); }]] : [])),
-    ...(user && localCount > 0 ? [[t('menu.importLocal', { n: localCount }), importLocal]] : []),
-    [t('menu.trash'), () => $('#btn-trash').click()],
+    [t('menu.settings'), () => settings.open()],
     [t('menu.templates'), () => tpl.open()],
     [t('menu.saveTemplate'), () => tpl.saveCurrent()],
-    ...installItem(),
-    [t('menu.search'), () => $('#btn-search').click()],
+    [t('menu.trash'), () => $('#btn-trash').click()],
     [t('menu.present'), () => present.start()],
-    [t('menu.fit'), () => view.fitAll({ animate: true })],
-    ...(store.prefs.theme !== 'system' ? [[t('menu.followSystem'), () => store.setPref('theme', 'system')]] : []),
-    [t('menu.minimap', { state: onOff(store.prefs.minimap !== false) }), () => { store.setPref('minimap', store.prefs.minimap === false); mm.schedule(); }],
-    [t('menu.speed', { value: t('speed.' + (store.prefs.sensitivity || 'normal')) }), () => { const o = ['low', 'normal', 'high']; store.setPref('sensitivity', o[(o.indexOf(store.prefs.sensitivity || 'normal') + 1) % 3]); toast(t('menu.speed', { value: t('speed.' + store.prefs.sensitivity) })); }],
-    [t('menu.guides', { state: onOff(store.prefs.guides !== false) }), () => store.setPref('guides', store.prefs.guides === false)],
-    [t('menu.grid', { state: onOff(store.prefs.grid) }), () => store.setPref('grid', !store.prefs.grid)],
-    [t('menu.snap', { state: onOff(store.prefs.snap) }), () => store.setPref('snap', !store.prefs.snap)],
-    [t('menu.language', { name: langName() }), langMenu],
-    [t('menu.export'), exportJson], [t('menu.import'), importJson], [t('menu.help'), () => $('#dlg-help').showModal()],
+    [t('menu.help'), () => $('#dlg-help').showModal()],
+    ...(user ? [[t('menu.signOut'), signOut]] : (window.corkboardAuth ? [[t('menu.signIn'), signIn]] : [])),
   ]);
+  const signOut = async () => { await backend.signOut(); localStorage.removeItem('corkboard.guest'); location.reload(); };
+  const signIn = () => { localStorage.removeItem('corkboard.guest'); location.reload(); };
 
   const tpl = setupTemplates({ store, view, backend, user, toast });
   const tree = setupTree(view, store);
   const mm = setupMinimap(view, store);
   const present = setupPresent(view, store, toast);
+  const settings = setupSettings({ store, user, tpl, tree, mm, toast, exportJson, importJson, importLocal, localCount, installItem, signOut, signIn, canSignIn: !!window.corkboardAuth });
   view.onPresent = () => present.start();
   view.onPresenting = (on) => { if (on) tree.hide(); };
   $('#btn-present').onclick = () => present.start();
