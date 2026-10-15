@@ -1,5 +1,6 @@
 // Element factories, defaults and helpers (no DOM rendering here).
 import { uid } from './store.js';
+import { defaultDatabaseContent, databaseText } from './database.js';
 
 export const COLORS = [null, '#fff7c2', '#ffd9d2', '#d6ecff', '#d9f5dc', '#e8dcff', '#ffe6bf', '#e9e9ee'];
 export const BOARD_COLORS = ['#7aa2f7', '#f7768e', '#9ece6a', '#e0af68', '#bb9af7', '#7dcfff', '#ff9e64', '#a0a6b5'];
@@ -7,18 +8,18 @@ export const BOARD_ICONS = ['📁', '💡', '🎨', '📅', '🎯', '📚', '�
 
 export const TYPE_LABEL = {
   note: 'Note', link: 'Link', todo: 'To-do list', task: 'Task', column: 'Column', board: 'Board',
-  comment: 'Comment', table: 'Table', image: 'Image', file: 'File', sketch: 'Sketch', line: 'Line',
+  comment: 'Comment', table: 'Table', database: 'Database', image: 'Image', file: 'File', sketch: 'Sketch', line: 'Line',
 };
 
 /** which element types a container accepts */
 export const ACCEPTS = {
-  column: new Set(['note', 'link', 'todo', 'table', 'image', 'file', 'sketch', 'board', 'comment']),
+  column: new Set(['note', 'link', 'todo', 'table', 'database', 'image', 'file', 'sketch', 'board', 'comment']),
   todo: new Set(['task']),
-  board: new Set(['note', 'link', 'todo', 'table', 'image', 'file', 'sketch', 'board', 'comment', 'column']),
+  board: new Set(['note', 'link', 'todo', 'table', 'image', 'file', 'sketch', 'board', 'comment', 'column', 'database']),
 };
 export const isContainer = (type) => type in ACCEPTS;
 
-const DEFAULT_W = { note: 240, link: 260, todo: 260, column: 280, board: 96, comment: 260, table: 340, image: 260, file: 240, sketch: 300 };
+const DEFAULT_W = { note: 240, link: 260, todo: 260, column: 280, board: 96, comment: 260, table: 340, database: 340, image: 260, file: 240, sketch: 300 };
 
 export function makeElement(type, parentId, over = {}) {
   const now = Date.now();
@@ -38,6 +39,7 @@ export function defaultContent(type) {
     case 'board': return { title: 'New board', icon: '📁', tint: BOARD_COLORS[(Math.random() * BOARD_COLORS.length) | 0] };
     case 'link': return { url: '', title: '' };
     case 'comment': return { thread: [] };
+    case 'database': return defaultDatabaseContent();
     case 'table': return { rows: [['', '', ''], ['', '', ''], ['', '', ''], ['', '', '']], header: true };
     case 'image': return { src: '', name: '', ratio: 0.66 };
     case 'file': return { name: '', size: 0, mime: '', src: '' };
@@ -47,7 +49,7 @@ export function defaultContent(type) {
   }
 }
 
-const ALLOWED_TAGS = new Set(['b', 'i', 'u', 's', 'strike', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'p', 'a', 'code', 'h2']);
+const ALLOWED_TAGS = new Set(['b', 'i', 'u', 's', 'strike', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'p', 'a', 'code', 'h2', 'h3', 'blockquote', 'pre', 'hr']);
 /** elements whose whole subtree is discarded (not unwrapped): scripts, styles, embeds, foreign-namespace content */
 const DROP_TAGS = new Set(['script', 'style', 'template', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'noscript', 'noembed', 'xmp', 'plaintext', 'title', 'head', 'meta', 'link', 'base', 'svg', 'math', 'textarea', 'select', 'option', 'audio', 'video', 'canvas']);
 const XHTML = 'http://www.w3.org/1999/xhtml';
@@ -91,6 +93,7 @@ export function elementText(e) {
     case 'link': return `${c.title} ${c.url}`;
     case 'comment': return c.thread.map((m) => m.text).join(' ');
     case 'table': return c.rows.flat().join(' ');
+    case 'database': return databaseText(c);
     case 'image': case 'file': return c.name || '';
     default: return '';
   }

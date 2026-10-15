@@ -13,6 +13,7 @@
 <title>Lorenote</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="features.css">
 <script src="src/theme-boot.js"></script>
 </head>
 <body data-theme="system">
@@ -73,6 +74,7 @@
   <button class="tool" data-type="column" title="Column"><i data-icon="column" data-size="22"></i><span>Column</span></button>
   <button class="tool" data-type="comment" title="Comment"><i data-icon="comment" data-size="22"></i><span>Comment</span></button>
   <button class="tool" data-type="table" title="Table"><i data-icon="table" data-size="22"></i><span>Table</span></button>
+  <button class="tool" data-type="database" title="Database: rows with properties, shown as table, board or gallery"><i data-icon="database" data-size="22"></i><span>Database</span></button>
   <hr>
   <button class="tool" data-type="image" title="Image"><i data-icon="image" data-size="22"></i><span>Image</span></button>
   <button class="tool" data-type="file" title="File"><i data-icon="file" data-size="22"></i><span>File</span></button>
@@ -110,7 +112,7 @@
 </aside>
 
 <dialog id="dlg-trash"><form method="dialog"><header><h3>Trash</h3><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="trash-list" class="list"></div><footer><button type="button" id="trash-empty" class="tb danger">Empty trash</button></footer></form></dialog>
-<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" placeholder="Search notes, tasks, links, tables, boards…" autocomplete="off"><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="search-list" class="list"></div></form></dialog>
+<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" placeholder="Search everything, or type a command…" autocomplete="off"><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="search-list" class="list"></div></form></dialog>
 <dialog id="dlg-help"><form method="dialog"><header><h3>Shortcuts &amp; gestures</h3><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header>
 <table class="keys">
 <tr><td>Double-click canvas</td><td>New note</td></tr><tr><td>Double-click note / board</td><td>Edit text / open board</td></tr>

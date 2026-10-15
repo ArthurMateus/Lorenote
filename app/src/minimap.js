@@ -1,5 +1,5 @@
 // Minimap: a small overview of the current board with the visible area outlined. Click or drag to move around.
-const FILL = { note: '#f2c94c', todo: '#6fcf97', column: '#9aa5b8', board: '#7aa2f7', table: '#bb9af7', image: '#f2994a', link: '#56ccf2', comment: '#eb5757', file: '#a0a6b5', sketch: '#c4a484', task: '#6fcf97' };
+const FILL = { note: '#f2c94c', todo: '#6fcf97', column: '#9aa5b8', board: '#7aa2f7', table: '#bb9af7', database: '#bb9af7', image: '#f2994a', link: '#56ccf2', comment: '#eb5757', file: '#a0a6b5', sketch: '#c4a484', task: '#6fcf97' };
 
 export function setupMinimap(view, store) {
   const cv = document.querySelector('#minimap'); const ctx = cv.getContext('2d'); let raf = 0, geo = null;

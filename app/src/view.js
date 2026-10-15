@@ -2,6 +2,8 @@
 import { icon } from './icons.js';
 import * as layout from './layout.js';
 import { applyTheme } from './theme.js';
+import { buildPreview } from './database.js';
+import { attachSlash } from './slash.js';
 import { COLORS, BOARD_COLORS, BOARD_ICONS, TYPE_LABEL, isContainer, makeElement, sanitizeHtml, hostOf, normalizeUrl, safeWebUrl } from './model.js';
 
 const h = (tag, attrs = {}, ...kids) => {
@@ -16,7 +18,7 @@ const h = (tag, attrs = {}, ...kids) => {
 const svgNS = 'http://www.w3.org/2000/svg';
 const s = (tag, attrs = {}) => { const n = document.createElementNS(svgNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
 
-const RESIZABLE = new Set(['note', 'link', 'todo', 'column', 'comment', 'table', 'image', 'file', 'sketch']);
+const RESIZABLE = new Set(['note', 'link', 'todo', 'column', 'comment', 'table', 'database', 'image', 'file', 'sketch']);
 const SKETCH_VW = 300;
 
 export class View {
@@ -91,7 +93,7 @@ export class View {
     }
     if (!rects.length) return this.animateTo({ tx: 40, ty: 40, scale: 1 }, opts.animate ? 350 : 0);
     const x1 = Math.min(...rects.map((r) => r.x)), y1 = Math.min(...rects.map((r) => r.y)), x2 = Math.max(...rects.map((r) => r.x + r.w)), y2 = Math.max(...rects.map((r) => r.y + r.h));
-    this.fitRect({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 }, { pad: 50, maxScale: 1.25, ...opts });
+    this.fitRect({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 }, { pad: 90, maxScale: 1.25, ...opts });
   }
 
   // ---------------------------------------------------------------- render
@@ -340,6 +342,7 @@ const BUILDERS = {
     });
     ed.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') ed.blur(); ev.stopPropagation(); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
+    attachSlash(ed);
     rec.node.append(ed);
     rec.update = (el) => { if (document.activeElement === ed) return; const clean = sanitizeHtml(el.content.html || ''); if (ed.innerHTML !== clean) ed.innerHTML = clean; };      // sanitised again on every render: stored data is never trusted
   },
@@ -437,6 +440,8 @@ const BUILDERS = {
       list.hidden = !el.content.thread.length;
     };
   },
+
+  database(rec, e, view) { buildPreview(rec, e, view); },
 
   table(rec, e, view) {
     const table = h('table', { class: 'tbl' });

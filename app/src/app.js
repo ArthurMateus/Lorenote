@@ -9,6 +9,7 @@ import { applyTheme, bindThemeToggles } from './theme.js';
 import { setupMinimap } from './minimap.js';
 import { setupPresent } from './present.js';
 import { setupTree } from './tree.js';
+import { openDatabase } from './database.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -38,6 +39,7 @@ export async function startApp({ backend = null, user = null } = {}) {
   view.files = backend ? new FileService(backend) : null;      // cloud storage for images/files (signed in only)
   view.onNotify = toast;
   const inter = setupInteractions(view, toast);
+  view.onOpenDatabase = (id) => openDatabase(store, id);
 
   // ---------------------------------------------------------------- link previews (server-side, via the link-preview Edge Function)
   view.onLinkPreview = async (id, url, force = false) => {
@@ -243,20 +245,33 @@ export async function startApp({ backend = null, user = null } = {}) {
   function boardOf(e) { for (let p = store.get(e.parentId); p; p = store.get(p.parentId)) if (p.type === 'board') return p; return store.get(store.rootId); }
   function runSearch() {
     const q = sIn.value.trim().toLowerCase(); const list = $('#search-list'); list.replaceChildren();
+    const here = () => { const r = dom.viewport.getBoundingClientRect(); const p = view.toWorld(r.left + r.width / 2, r.top + r.height / 2); return { parentId: view.boardId, section: 'canvas', x: p.x - 110, y: p.y - 60 }; };
+    const make = (type) => () => { const el = inter.create(type, here()); view.render(); if (el) view.select([el.id]); };
+    const COMMANDS = [
+      ['New note', make('note')], ['New to-do list', make('todo')], ['New database', make('database')], ['New table', make('table')], ['New column', make('column')], ['New board', make('board')],
+      ['Toggle light / dark', () => $('#btn-theme').click()], ['Present this board', () => $('#btn-present').click()], ['Zoom to fit', () => $('#btn-fit').click()],
+      ['Browse templates', () => $('#btn-templates').click()], ['Show all boards', () => $('#btn-tree').click()], ['Open trash', () => $('#btn-trash').click()], ['Shortcuts & help', () => $('#dlg-help').showModal()],
+    ].filter(([name]) => !q || name.toLowerCase().includes(q));
+    for (const [name, run] of COMMANDS.slice(0, q ? 5 : 20)) {
+      const row = document.createElement('button'); row.type = 'button'; row.className = 'row cmd';
+      row.innerHTML = '<span class="tag">Do</span><span class="txt"></span><span class="where">command</span>'; row.querySelector('.txt').textContent = name;
+      row.onclick = () => { searchDlg.close(); run(); }; list.append(row);
+    }
     if (!q) return;
     const hits = Object.values(store.elements).filter((e) => !e.trashed && e.id !== store.rootId && e.type !== 'line' && elementText(e).toLowerCase().includes(q)).slice(0, 60);
-    if (!hits.length) list.textContent = 'No matches.';
+    if (!hits.length && !COMMANDS.length) list.textContent = 'No matches.';
     for (const e of hits) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'row';
       row.innerHTML = '<span class="tag"></span><span class="txt"></span><span class="where"></span>';
       row.querySelector('.tag').textContent = TYPE_LABEL[e.type]; row.querySelector('.txt').textContent = elementText(e).replace(/\s+/g, ' ').slice(0, 90);
       row.querySelector('.where').textContent = boardOf(e).content.title;
-      row.onclick = () => { searchDlg.close(); reveal(e); };
+      row.onclick = () => { searchDlg.close(); if (e.type === 'board') { view.setBoard(e.id); renderCrumbs(); } else reveal(e); };
       list.append(row);
     }
   }
   sIn.addEventListener('input', runSearch);
-  $('#btn-search').onclick = () => { searchDlg.showModal(); sIn.select(); };
+  sIn.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); $('#search-list .row')?.click(); } });
+  $('#btn-search').onclick = () => { searchDlg.showModal(); sIn.select(); runSearch(); };
   document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#btn-search').click(); } });
   function reveal(e) {
     const target = e.type === 'board' && false ? e : boardOf(e);

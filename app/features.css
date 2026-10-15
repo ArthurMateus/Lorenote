@@ -1,0 +1,82 @@
+/* Lorenote: floating-chrome layout (desktop/tablet) and styles for databases, the slash menu and the command palette.
+   Phones keep the layout from styles.css (top bar + bottom tool bar). */
+
+/* ---------- floating layout: the canvas is full-bleed and the chrome floats above it */
+@media (min-width: 761px) {
+  body { display: block; }
+  #viewport { position: fixed; inset: 0; }
+  #topbar { position: fixed; top: 10px; left: 10px; right: 10px; height: 48px; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); background: color-mix(in srgb, var(--panel) 90%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  #toolbar { position: fixed; left: 10px; top: 50%; transform: translateY(-50%); width: 68px; max-height: calc(100vh - 100px); padding: 8px 0; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  #toolbar::-webkit-scrollbar { width: 0; }
+  .tool { width: 56px; padding: 5px 0 3px; }
+  #tree-drawer { left: 10px; top: 68px; bottom: 10px; border: 1px solid var(--line); border-radius: 16px; }
+  #minimap { bottom: 16px; right: 16px; }
+  #empty { padding-top: 70px; }
+}
+
+/* ---------- database card (on the canvas) */
+.t-database { min-width: 240px; }
+.db-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 6px; }
+.db-title { flex: 1; min-width: 0; font-family: var(--serif); font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.db-badge { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.db-open { border: 1px solid var(--line); background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.db-open:hover { background: var(--accent); color: var(--accent-ink); }
+.db-prev { padding: 2px 8px 10px; display: flex; flex-direction: column; gap: 1px; }
+.db-prev-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; font-size: 13px; }
+.db-prev-row:nth-child(odd) { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.db-prev-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.db-more { font-size: 12px; color: var(--muted); padding: 2px 6px; }
+.db-chip { display: inline-block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c, #9aa5b8) 24%, transparent); color: var(--ink); border: 1px solid color-mix(in srgb, var(--c, #9aa5b8) 45%, transparent); }
+
+/* ---------- database editor dialog */
+.db-dlg { width: min(1100px, 96vw); height: min(760px, 92vh); display: none; flex-direction: column; overflow: hidden; }
+.db-dlg[open] { display: flex; }
+.db-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.db-name { flex: 1; min-width: 0; border: 0; background: none; font: 600 20px var(--serif); color: var(--ink); padding: 4px 6px; border-radius: 8px; }
+.db-name:focus, .db-dlg input:focus, .db-dlg select:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: -1px; }
+.db-tabs { display: flex; gap: 2px; background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius: 10px; padding: 3px; }
+.db-tab { border: 0; background: none; padding: 5px 14px; border-radius: 8px; font-size: 13px; color: var(--muted); }
+.db-tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+.db-tools { display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.db-dlg input, .db-dlg select { font: inherit; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; min-width: 0; }
+.db-tools input, .db-tools select { border-color: var(--line); background: var(--panel); }
+.db-body { flex: 1; overflow: auto; padding: 12px 16px 20px; }
+.db-scroll { overflow-x: auto; }
+.db-tbl { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 640px; font-size: 13.5px; }
+.db-tbl th, .db-tbl td { border-bottom: 1px solid var(--line); padding: 2px 4px; text-align: left; vertical-align: middle; position: relative; }
+.db-tbl th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.db-tbl td input:not([type=checkbox]), .db-tbl td select { width: 100%; }
+.db-th { border: 0; background: none; width: 100%; text-align: left; padding: 6px 8px; border-radius: 6px; color: var(--muted); display: flex; gap: 6px; align-items: baseline; }
+.db-th:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.db-ty { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: .04em; }
+.db-th-add { width: 36px; } .db-th-title { min-width: 200px; } .db-td-x { width: 36px; } .db-td-x .ib { opacity: 0; } tr:hover .db-td-x .ib { opacity: 1; }
+.db-sel { border-radius: 999px !important; background: color-mix(in srgb, var(--c, transparent) 22%, transparent) !important; }
+.db-pmenu { position: absolute; top: 100%; left: 0; z-index: 5; width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 10px; display: flex; flex-direction: column; gap: 8px; font-weight: 400; }
+.db-pmenu label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.db-pmenu input, .db-pmenu select { border-color: var(--line); }
+.db-add { margin-top: 8px; color: var(--muted); }
+.db-empty { padding: 40px; text-align: center; color: var(--muted); }
+.db-board { display: flex; gap: 12px; align-items: flex-start; min-height: 100%; }
+.db-col { flex: 0 0 260px; background: color-mix(in srgb, var(--ink) 4%, transparent); border-radius: 12px; padding: 8px; transition: outline-color .1s; outline: 2px solid transparent; }
+.db-col.over { outline-color: var(--accent); }
+.db-col-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; padding: 4px 6px 8px; }
+.db-dot { width: 9px; height: 9px; border-radius: 50%; } .db-count { margin-left: auto; color: var(--muted); font-weight: 400; }
+.db-col-list { display: flex; flex-direction: column; gap: 8px; min-height: 12px; }
+.db-card, .db-gcard { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px; box-shadow: var(--shadow); cursor: grab; }
+.db-card.dragging { opacity: .4; } .db-card input, .db-gcard input { width: 100%; font-weight: 600; }
+.db-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 6px 4px; }
+.db-x { position: absolute; top: 4px; right: 4px; border: 0; background: none; color: var(--muted); border-radius: 6px; width: 22px; height: 22px; opacity: 0; }
+.db-card:hover .db-x, .db-gcard:hover .db-x { opacity: 1; } .db-x:hover { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
+.db-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.db-gcard { min-height: 110px; cursor: default; } .db-gadd { display: grid; place-items: center; color: var(--muted); border-style: dashed; box-shadow: none; background: none; cursor: pointer; }
+@media (max-width: 760px) { .db-dlg { width: 100vw; height: 100dvh; } .db-dlg input, .db-dlg select { font-size: 16px; } .db-col { flex-basis: 78vw; } }
+
+/* ---------- slash menu and richer note blocks */
+.slash-menu { position: fixed; z-index: 90; width: 260px; max-height: 300px; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 6px; display: flex; flex-direction: column; }
+.slash-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 8px; }
+.slash-menu button.on, .slash-menu button:hover { background: var(--accent-soft); }
+.slash-menu b { font-size: 13.5px; font-weight: 600; } .slash-menu span { font-size: 11.5px; color: var(--muted); }
+.note-text h2 { font-size: 1.25em; margin: .3em 0; } .note-text h3 { font-size: 1.08em; margin: .3em 0; }
+.note-text blockquote { margin: .4em 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--accent); color: var(--muted); }
+.note-text pre { margin: .4em 0; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 7%, transparent); font: 12.5px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+.note-text hr { border: 0; border-top: 1px solid var(--line); margin: .6em 0; }
