@@ -1,6 +1,7 @@
 // Boards tree: every board you have, nested as deep as you made them. Click to open, chevron to expand.
 import { icon } from './icons.js';
-import { isContainer } from './model.js';
+import { isContainer, boardName } from './model.js';
+import { t } from './i18n.js';
 
 export function setupTree(view, store) {
   const drawer = document.querySelector('#tree-drawer'), list = document.querySelector('#tree-list');
@@ -22,12 +23,12 @@ export function setupTree(view, store) {
   function row(board, depth, currentPath) {
     const kids = childBoards(board.id); const isOpen = open.has(board.id);
     const el = document.createElement('div'); el.className = 'tn' + (board.id === view.boardId ? ' on' : ''); el.style.paddingLeft = 4 + depth * 16 + 'px'; el.setAttribute('role', 'treeitem');
-    const tw = document.createElement('button'); tw.type = 'button'; tw.className = 'tw' + (kids.length ? (isOpen ? ' open' : '') : ' none'); tw.innerHTML = icon('chevron'); tw.setAttribute('aria-label', isOpen ? 'Collapse' : 'Expand');
+    const tw = document.createElement('button'); tw.type = 'button'; tw.className = 'tw' + (kids.length ? (isOpen ? ' open' : '') : ' none'); tw.innerHTML = icon('chevron'); tw.setAttribute('aria-label', isOpen ? t('tree.collapse') : t('tree.expand'));
     tw.onclick = (e) => { e.stopPropagation(); if (open.has(board.id)) open.delete(board.id); else open.add(board.id); persist(); render(); };
     const ti = document.createElement('span'); ti.className = 'ti'; ti.textContent = board.id === store.rootId ? '🏠' : (board.content.icon || '📁');
-    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = board.content.title || 'Untitled';
+    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = boardName(board);
     const tc = document.createElement('span'); tc.className = 'tc'; tc.textContent = cardCount(board.id) || '';
-    const star = document.createElement('button'); star.type = 'button'; star.className = 'tstar' + (isFav(board.id) ? ' on' : ''); star.textContent = isFav(board.id) ? '★' : '☆'; star.title = 'Favourite'; star.setAttribute('aria-label', 'Toggle favourite'); star.onclick = (e) => { e.stopPropagation(); toggleFav(board.id); };
+    const star = document.createElement('button'); star.type = 'button'; star.className = 'tstar' + (isFav(board.id) ? ' on' : ''); star.textContent = isFav(board.id) ? '★' : '☆'; star.title = t('side.fav'); star.setAttribute('aria-label', t('side.fav')); star.onclick = (e) => { e.stopPropagation(); toggleFav(board.id); };
     el.append(tw, ti, tt, tc, star); el.onclick = () => { view.onOpen?.(board.id); if (matchMedia('(max-width: 760px)').matches) hide(); };
     const frag = [el];
     if (kids.length && isOpen) for (const k of kids) frag.push(...row(k, depth + 1, currentPath));
@@ -40,9 +41,9 @@ export function setupTree(view, store) {
     open.add(store.rootId); const root = store.get(store.rootId);
     favs = favs.filter((id) => store.get(id) && !store.get(id).trashed);
     const head = (txt) => { const d = document.createElement('div'); d.className = 'tsec'; d.textContent = txt; return d; };
-    const search = document.createElement('button'); search.type = 'button'; search.className = 'tsearch'; search.innerHTML = icon('search') + '<span>Search or run a command</span><kbd>Ctrl K</kbd>'; search.onclick = () => document.querySelector('#btn-search').click();
+    const search = document.createElement('button'); search.type = 'button'; search.className = 'tsearch'; search.innerHTML = icon('search') + '<span></span><kbd>Ctrl K</kbd>'; search.querySelector('span').textContent = t('side.search'); search.onclick = () => document.querySelector('#btn-search').click();
     const favRows = favs.map((id) => store.get(id)).filter(Boolean).map((b) => { const el = row(b, 0, path)[0]; return el; });
-    list.replaceChildren(search, ...(favRows.length ? [head('Favourites'), ...favRows] : []), head('Boards'), ...row(root, 0, path));
+    list.replaceChildren(search, ...(favRows.length ? [head(t('side.favs')), ...favRows] : []), head(t('side.boards')), ...row(root, 0, path));
     const cur = list.querySelector('.tn.on'); cur?.scrollIntoView?.({ block: 'nearest' });
   }
   const WIDE = matchMedia('(min-width: 1100px)'); const PIN = 'lorenote.sidebar';

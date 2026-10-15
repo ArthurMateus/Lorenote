@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 // Cloud file storage for image/file cards (Supabase Storage, private bucket, per-user folder).
 // Cards store `content.path` (the storage path); blobs are cached in the Cache API so they work offline.
 // Guests (no backend) keep small files inline as data URLs in `content.src`, as before.
@@ -12,7 +13,7 @@ export class FileService {
 
   /** upload a blob for an element; returns the storage path */
   async upload(elementId, blob, name = 'file') {
-    if (blob.size > MAX_CLOUD_BYTES) throw new Error(`“${name}” is larger than ${MAX_CLOUD_BYTES / 1048576} MB`);
+    if (blob.size > MAX_CLOUD_BYTES) throw Object.assign(new Error(t('file.tooLarge', { name, n: MAX_CLOUD_BYTES / 1048576 })), { code: 'too-large' });
     const ext = (name.match(/\.([A-Za-z0-9]{1,8})$/) || [, 'bin'])[1].toLowerCase();
     const rel = `${elementId}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
     const path = await this.backend.uploadFile(rel, blob);

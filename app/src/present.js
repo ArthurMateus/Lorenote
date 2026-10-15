@@ -1,5 +1,6 @@
 // Presentation mode: hides the interface and flies the camera across the board, one card at a time.
 // Step 0 is the whole board; then cards in reading order (rows top to bottom, each left to right).
+import { t } from './i18n.js';
 export function setupPresent(view, store, toast) {
   const hud = document.querySelector('#present-hud'), count = document.querySelector('#present-count');
   let steps = [], i = 0, saved = null, active = false;
@@ -19,7 +20,7 @@ export function setupPresent(view, store, toast) {
   const next = () => { if (i < steps.length) go(i + 1); }, prev = () => { if (i > 0) go(i - 1); };
 
   function start() {
-    steps = plan(); if (!steps.length) return toast('Nothing to present yet. Add some cards first.');
+    steps = plan(); if (!steps.length) return toast(t('present.nothing'));
     saved = { tx: view.tx, ty: view.ty, scale: view.scale }; active = true; view.clearSelection();
     document.body.classList.add('presenting'); hud.hidden = false; view.drawing = null;
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch(() => {}); } catch { /* not allowed */ }

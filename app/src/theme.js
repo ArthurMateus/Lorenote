@@ -2,6 +2,7 @@
 // "Follow system" stays available in the menu. The choice is mirrored to localStorage so the landing page
 // and the very first paint (see the inline script in index.html) use it too.
 import { icon } from './icons.js';
+import { t } from './i18n.js';
 
 const mq = () => matchMedia('(prefers-color-scheme: dark)');
 export const effectiveTheme = (pref) => (pref === 'dark' || (pref === 'system' && mq().matches) ? 'dark' : 'light');
@@ -16,7 +17,7 @@ export function applyTheme(pref) {
 function paintToggles(pref) {
   const dark = effectiveTheme(pref) === 'dark';
   for (const b of document.querySelectorAll('.theme-toggle')) {
-    b.innerHTML = icon(dark ? 'sun' : 'moon'); b.title = dark ? 'Switch to light mode' : 'Switch to dark mode'; b.setAttribute('aria-label', b.title); b.dataset.mode = dark ? 'dark' : 'light';
+    b.innerHTML = icon(dark ? 'sun' : 'moon'); b.title = dark ? t('theme.toLight') : t('theme.toDark'); b.setAttribute('aria-label', b.title); b.dataset.mode = dark ? 'dark' : 'light';
   }
 }
 
@@ -27,4 +28,5 @@ export function bindThemeToggles(get, set) {
   paintToggles(get());
 }
 
+window.addEventListener('lang-change', () => paintToggles(savedTheme()));      // retitle the toggles in the new language
 export const savedTheme = () => { try { return localStorage.getItem('corkboard.theme') || 'system'; } catch { return 'system'; } };

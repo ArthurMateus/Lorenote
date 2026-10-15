@@ -6,6 +6,7 @@
 // so one instantiate() and one thumbnail renderer cover both.
 import { makeElement, defaultContent, COLORS, safeColor } from './model.js';
 import { uid } from './store.js';
+import { t as tr, tx, getLang } from './i18n.js';
 
 // ------------------------------------------------------------------ sizes (estimates, for layout + thumbnails)
 const DEFAULT_W = { note: 220, link: 260, todo: 260, column: 260, board: 96, comment: 260, table: 420, image: 200, file: 240, sketch: 280 };
@@ -145,21 +146,21 @@ export function thumbSVG(nodes, { w = 220, h = 130 } = {}) {
 // ------------------------------------------------------------------ authoring helpers for the built-in library
 const [, Y, R, B, G, P, O, S] = COLORS;      // yellow, rose, blue, green, purple, orange, grey
 const T = {
-  note: (x, y, html, o = {}) => ({ type: 'note', x, y, w: o.w || 220, color: o.color || null, id: o.id, content: { html } }),
-  col: (x, y, title, kids = [], o = {}) => ({ type: 'column', x, y, w: o.w || 260, color: o.color || null, id: o.id, content: { title }, kids }),
-  todo: (x, y, title, tasks, o = {}) => ({ type: 'todo', x, y, w: o.w || 260, id: o.id, content: { title: title || '', showTitle: !!title }, kids: tasks.map((t) => ({ type: 'task', content: { text: t, done: false } })) }),
-  table: (x, y, rows, o = {}) => ({ type: 'table', x, y, w: o.w || 440, id: o.id, content: { rows, header: o.header !== false } }),
-  board: (x, y, title, icon, tint, kids = [], o = {}) => ({ type: 'board', x, y, w: 96, id: o.id, content: { title, icon, tint }, kids }),
+  note: (x, y, html, o = {}) => ({ type: 'note', x, y, w: o.w || 220, color: o.color || null, id: o.id, content: { html: tx(html) } }),
+  col: (x, y, title, kids = [], o = {}) => ({ type: 'column', x, y, w: o.w || 260, color: o.color || null, id: o.id, content: { title: tx(title) }, kids }),
+  todo: (x, y, title, tasks, o = {}) => ({ type: 'todo', x, y, w: o.w || 260, id: o.id, content: { title: tx(title || ''), showTitle: !!title }, kids: tasks.map((t) => ({ type: 'task', content: { text: tx(t), done: false } })) }),
+  table: (x, y, rows, o = {}) => ({ type: 'table', x, y, w: o.w || 440, id: o.id, content: { rows: rows.map((r) => r.map(tx)), header: o.header !== false } }),
+  board: (x, y, title, icon, tint, kids = [], o = {}) => ({ type: 'board', x, y, w: 96, id: o.id, content: { title: tx(title), icon, tint }, kids }),
   link: (x, y, o = {}) => ({ type: 'link', x, y, w: o.w || 260, id: o.id, content: { url: '', title: '' } }),
   image: (x, y, w = 200, ratio = 0.7, o = {}) => ({ type: 'image', x, y, w, id: o.id, content: { src: '', name: '', ratio } }),
   sketch: (x, y, o = {}) => ({ type: 'sketch', x, y, w: o.w || 280, id: o.id, content: { strokes: [], h: o.h || 180 } }),
   line: (from, to, o = {}) => ({ type: 'line', from, to, arrow: o.arrow !== false, dashed: !!o.dashed, content: {} }),
 };
-const cn = (t) => `<b>${t}</b>`;                               // heading line inside a note
-const nt = (head, body = '') => `<b>${head}</b>${body ? '<br>' + body : ''}`;
+const cn = (t) => `<b>${tx(t)}</b>`;                           // heading line inside a note
+const nt = (head, body = '') => `<b>${tx(head)}</b>${body ? '<br>' + tx(body) : ''}`;
 /** n equally spaced columns */
 const columns = (titles, kidsByCol = [], o = {}) => titles.map((t, i) => T.col((o.x0 ?? 60) + i * (o.gap ?? 290), o.y ?? 60, t, kidsByCol[i] || [], { w: o.w ?? 260, color: o.colors?.[i] }));
-const stackNotes = (items, color) => items.map((h) => ({ type: 'note', color: color || null, content: { html: h } }));
+const stackNotes = (items, color) => items.map((h) => ({ type: 'note', color: color || null, content: { html: tx(h) } }));
 const empty = (n) => Array.from({ length: n }, () => ['', '', '']);
 
 /** a brief: titled prompt notes in a 2-column grid, plus optional extras */
@@ -172,7 +173,11 @@ const brief = (sections, extras = []) => [
 export const CATEGORIES = ['Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Writing', 'Product & UX', 'Marketing', 'Education', 'Personal'];
 
 const L = [];
-const add = (id, name, category, description, nodes) => L.push({ id, name, category, description, nodes: typeof nodes === 'function' ? nodes() : nodes });
+const add = (id, name, category, description, nodes) => {
+  const cache = new Map();                                      // language -> built nodes (template text is translated while building)
+  L.push({ id, category, get name() { return tx(name); }, get description() { return tx(description); },
+    get nodes() { const lg = getLang(); if (!cache.has(lg)) cache.set(lg, typeof nodes === 'function' ? nodes() : nodes); return cache.get(lg); } });
+};
 
 // ---- Planning
 add('weekly-plan', 'Weekly plan', 'Planning', 'One column per day, plus a parking lot for things that float.', () => [
@@ -234,7 +239,7 @@ add('character-board', 'Character design board', 'Moodboards', 'Look, personalit
   T.table(620, 60, [['Trait', 'Notes'], ['Age', ''], ['Role', ''], ['Silhouette', '']], { w: 320 })]);
 
 // ---- Storyboards
-const panel = (x, y, i, w = 230) => T.col(x, y, `Shot ${i}`, [T.image(0, 0, w - 36, 0.56), { type: 'note', content: { html: nt('Action', 'What happens?') } }], { w });
+const panel = (x, y, i, w = 230) => T.col(x, y, tr('tplx.shot', { n: i }), [T.image(0, 0, w - 36, 0.56), { type: 'note', content: { html: nt('Action', 'What happens?') } }], { w });
 add('film-storyboard', 'Film storyboard', 'Storyboards', 'Six shots with frames and action notes.', () => [...Array.from({ length: 6 }, (_, i) => panel(60 + (i % 3) * 260, 60 + Math.floor(i / 3) * 360, i + 1))]);
 add('video-storyboard', 'Video storyboard', 'Storyboards', 'A single row of panels for short videos.', () => Array.from({ length: 4 }, (_, i) => panel(60 + i * 260, 60, i + 1)));
 add('app-storyboard', 'App flow', 'Storyboards', 'Screens connected in the order a person sees them.', () => {
@@ -252,7 +257,7 @@ add('brainstorm', 'Brainstorm', 'Brainstorming', 'A topic in the middle and idea
 add('mind-map', 'Mind map', 'Brainstorming', 'Branches and sub-branches from one central thought.', () => {
   const n = [T.note(380, 250, nt('Main idea'), { w: 170, color: S, id: 'm' })];
   const br = [['A', 40, 60], ['B', 40, 250], ['C', 40, 440], ['D', 760, 60], ['E', 760, 250], ['F', 760, 440]];
-  br.forEach(([t, x, y], i) => { n.push(T.note(x, y, nt('Branch ' + t), { w: 160, color: [Y, B, G, P, O, R][i], id: 'b' + i }), T.line('m', 'b' + i)); });
+  br.forEach(([t, x, y], i) => { n.push(T.note(x, y, nt(tr('tplx.branch', { letter: t })), { w: 160, color: [Y, B, G, P, O, R][i], id: 'b' + i }), T.line('m', 'b' + i)); });
   return n;
 });
 add('flow-chart', 'Flow chart', 'Brainstorming', 'Steps and decisions joined with arrows.', () => [
@@ -260,7 +265,7 @@ add('flow-chart', 'Flow chart', 'Brainstorming', 'Steps and decisions joined wit
   T.note(740, 60, nt('Yes', 'Continue'), { w: 150, color: Y, id: 'd' }), T.note(740, 270, nt('No', 'Go back'), { w: 150, color: R, id: 'e' }), T.note(960, 60, nt('End'), { w: 120, color: G, id: 'f' }),
   T.line('a', 'b'), T.line('b', 'c'), T.line('c', 'd'), T.line('c', 'e'), T.line('d', 'f'), T.line('e', 'b', { dashed: true })]);
 add('five-whys', '5 Whys', 'Brainstorming', 'Ask why five times to find the root cause.', () => [
-  T.note(40, 150, nt('Problem', 'What went wrong?'), { w: 160, color: R, id: 'p' }), ...[1, 2, 3, 4, 5].map((i) => T.note(40 + i * 190, 150, nt(`Why ${i}?`, 'Because…'), { w: 160, color: i === 5 ? P : Y, id: 'w' + i })),
+  T.note(40, 150, nt('Problem', 'What went wrong?'), { w: 160, color: R, id: 'p' }), ...[1, 2, 3, 4, 5].map((i) => T.note(40 + i * 190, 150, nt(tr('tplx.why', { n: i }), 'Because…'), { w: 160, color: i === 5 ? P : Y, id: 'w' + i })),
   T.note(40 + 6 * 190, 150, nt('Root cause', 'What will we change?'), { w: 170, color: G, id: 'r' }), T.line('p', 'w1'), T.line('w1', 'w2'), T.line('w2', 'w3'), T.line('w3', 'w4'), T.line('w4', 'w5'), T.line('w5', 'r')]);
 add('concept-map', 'Concept map', 'Brainstorming', 'Connect ideas and label how they relate.', () => [
   T.note(300, 40, nt('Big idea'), { w: 170, color: P, id: 'a' }), T.note(60, 230, nt('Concept'), { w: 150, color: Y, id: 'b' }), T.note(300, 260, nt('Concept'), { w: 150, color: B, id: 'c' }), T.note(540, 230, nt('Concept'), { w: 150, color: G, id: 'd' }),
@@ -295,7 +300,7 @@ add('campaign-plan', 'Campaign plan', 'Marketing', 'Objective, audience, channel
   T.note(60, 60, nt('Objective', 'One measurable goal.'), { w: 280, color: Y }), T.note(60, 190, nt('Audience', 'Who exactly?'), { w: 280, color: B }), T.todo(60, 320, 'Channels', ['Email', 'Social', 'Ads'], { w: 280 }),
   T.table(380, 60, [['Week', 'Message', 'Channel', 'Owner'], ['1', '', '', ''], ['2', '', '', ''], ['3', '', '', ''], ['4', '', '', '']], { w: 520 }), T.table(380, 280, [['Budget', 'Plan', 'Spent'], ['', '', ''], ['', '', '']], { w: 380 })]);
 add('content-calendar', 'Content calendar', 'Marketing', 'A month of posts, plus an ideas pile.', () => [
-  T.table(60, 60, [['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'], ['Week 1', '', '', '', '', ''], ['Week 2', '', '', '', '', ''], ['Week 3', '', '', '', '', ''], ['Week 4', '', '', '', '', '']], { w: 640 }), T.col(740, 60, 'Ideas', stackNotes(['Post idea'], Y), { w: 240 })]);
+  T.table(60, 60, [['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'], [tr('tplx.week', { n: 1 }), '', '', '', '', ''], [tr('tplx.week', { n: 2 }), '', '', '', '', ''], [tr('tplx.week', { n: 3 }), '', '', '', '', ''], [tr('tplx.week', { n: 4 }), '', '', '', '', '']], { w: 640 }), T.col(740, 60, 'Ideas', stackNotes(['Post idea'], Y), { w: 240 })]);
 
 // ---- Education
 add('lesson-plan', 'Lesson plan', 'Education', 'Outcomes, activities and materials for one class.', () => [

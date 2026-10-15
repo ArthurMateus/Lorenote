@@ -1,7 +1,7 @@
 import { Store } from './store.js';
 import { View } from './view.js';
 import { setupInteractions } from './interact.js';
-import { elementText, TYPE_LABEL, normalizeUrl } from './model.js';
+import { elementText, TYPE_LABEL, boardName, normalizeUrl } from './model.js';
 import { setupTemplates } from './template-ui.js';
 import { FileService, dataUrlToBlob, MAX_CLOUD_BYTES } from './files.js';
 import { hydrateIcons } from './icons.js';
@@ -9,6 +9,7 @@ import { applyTheme, bindThemeToggles } from './theme.js';
 import { setupMinimap } from './minimap.js';
 import { setupPresent } from './present.js';
 import { setupTree } from './tree.js';
+import { t, getLang, setLang, langName, LANGS } from './i18n.js';
 import { openDatabase } from './database.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
@@ -30,7 +31,7 @@ export async function startApp({ backend = null, user = null } = {}) {
 
   // ---------------------------------------------------------------- toast
   let toastTimer;
-  function toast(msg, undo, label = 'Undo', ms = 4500) {
+  function toast(msg, undo, label = t('toast.undo'), ms = 4500) {
     const t = $('#toast'); t.replaceChildren(msg);
     if (undo) { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { undo(); t.hidden = true; }; t.append(' ', b); }
     t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), ms);
@@ -43,16 +44,16 @@ export async function startApp({ backend = null, user = null } = {}) {
 
   // ---------------------------------------------------------------- link previews (server-side, via the link-preview Edge Function)
   view.onLinkPreview = async (id, url, force = false) => {
-    if (!backend) { if (force) toast('Sign in to fetch link previews'); return; }
+    if (!backend) { if (force) toast(t('toast.previewSignIn')); return; }
     try {
       const p = await backend.linkPreview(url);
       const cur = store.live(id); if (!cur || cur.content.url !== url) return;
-      if (p.error && !p.title) { if (force) toast('No preview available: ' + p.error); return; }
+      if (p.error && !p.title) { if (force) toast(t('toast.previewNone', { err: p.error })); return; }
       const c = { ...cur.content, description: p.description || '', image: p.image || '', siteName: p.siteName || '' };
       if (p.title && !cur.content.titleEdited) c.title = p.title;
       store.silentCommit([{ id, after: { ...cur, content: c } }]);
-      if (force) toast('Preview updated');
-    } catch (err) { if (force) toast('Could not fetch a preview: ' + (err.message || err)); }
+      if (force) toast(t('toast.previewUpdated'));
+    } catch (err) { if (force) toast(t('toast.previewFail', { err: err.message || err })); }
   };
 
   // ---------------------------------------------------------------- files: move inline data to cloud storage, tidy orphans
@@ -62,7 +63,7 @@ export async function startApp({ backend = null, user = null } = {}) {
     try {
       const todo = Object.values(store.elements).filter((e) => (e.type === 'image' || e.type === 'file') && !e.content.path && typeof e.content.src === 'string' && e.content.src.startsWith('data:'));
       if (!todo.length) return;
-      toast(`Moving ${todo.length} file${todo.length > 1 ? 's' : ''} to cloud storage…`, null, '', 8000);
+      toast(t('toast.moving', { n: todo.length }), null, '', 8000);
       let ok = 0;
       for (const e of todo) {
         try {
@@ -73,7 +74,7 @@ export async function startApp({ backend = null, user = null } = {}) {
           store.silentCommit([{ id: e.id, after: { ...cur, content: { ...rest, path, size: blob.size, mime: blob.type || rest.mime } } }]); ok++;
         } catch (err) { console.warn('could not move file', e.id, err); }
       }
-      if (ok) toast(`Moved ${ok} file${ok > 1 ? 's' : ''} to cloud storage`);
+      if (ok) toast(t('toast.moved', { n: ok }));
     } finally { migrating = false; }
   }
   async function cleanOrphanFiles() {
@@ -100,11 +101,11 @@ export async function startApp({ backend = null, user = null } = {}) {
     const boards = store.path(view.boardId).filter((e) => e.type === 'board');
     boards.forEach((b, i) => {
       if (i) nav.append(Object.assign(document.createElement('span'), { className: 'sep', textContent: '/' }));
-      const a = document.createElement(i === boards.length - 1 ? 'strong' : 'button'); a.textContent = b.content.title || 'Untitled';
+      const a = document.createElement(i === boards.length - 1 ? 'strong' : 'button'); a.textContent = boardName(b);
       if (i < boards.length - 1) a.onclick = () => view.onOpen(b.id);
       nav.append(a);
     });
-    document.title = `${boards.at(-1)?.content.title || 'Lorenote'} · Lorenote`;
+    document.title = `${boards.at(-1) ? boardName(boards.at(-1)) : 'Lorenote'} · Lorenote`;
   }
 
   // ---------------------------------------------------------------- header
@@ -114,9 +115,8 @@ export async function startApp({ backend = null, user = null } = {}) {
     renderCrumbs();
   }
   store.subscribe(syncChrome); view.onZoom = syncChrome;
-  const syncLabels = { local: 'Local only', synced: 'Saved', syncing: 'Saving…', offline: 'Offline · saved on this device', error: 'Sync problem · retrying' };
   const syncEl = $('#sync');
-  const paintSync = () => { syncEl.hidden = false; syncEl.dataset.state = store.syncState; syncEl.textContent = backend ? syncLabels[store.syncState] : syncLabels.local; syncEl.title = backend ? 'Cloud sync status' : 'Not signed in: data stays in this browser'; };
+  const paintSync = () => { syncEl.hidden = false; syncEl.dataset.state = store.syncState; syncEl.textContent = t('sync.' + (backend ? store.syncState : 'local')); syncEl.title = backend ? t('sync.tipCloud') : t('sync.tipLocal'); };
   store.subscribe((i) => { if (i.sync || i.reset) paintSync(); }); paintSync();
   $('#btn-undo').onclick = () => store.undo(); $('#btn-redo').onclick = () => store.redo();
   $('#zoom-in').onclick = () => view.zoomBy(1.2); $('#zoom-out').onclick = () => view.zoomBy(1 / 1.2); $('#zoom-label').onclick = () => view.zoomReset();
@@ -128,23 +128,26 @@ export async function startApp({ backend = null, user = null } = {}) {
   }
   document.addEventListener('pointerdown', (e) => { for (const m of document.querySelectorAll('.popmenu')) if (!m.hidden && !m.contains(e.target) && !e.target.closest('#btn-menu,#btn-templates')) m.hidden = true; }, true);
 
+  const onOff = (on) => t(on ? 'common.on' : 'common.off');
+  const langMenu = () => popMenu($('#menu'), $('#btn-menu'), LANGS.map((l) => [(l.code === getLang() ? '✓ ' : '\u2003') + l.name, () => setLang(l.code)]));
   $('#btn-menu').onclick = () => popMenu($('#menu'), $('#btn-menu'), [
-    ...(user ? [[`Signed in as ${user.email}`, () => {}], ['Sign out', async () => { await backend.signOut(); localStorage.removeItem('corkboard.guest'); location.reload(); }]] : (window.corkboardAuth ? [['Sign in / create account', () => { localStorage.removeItem('corkboard.guest'); location.reload(); }]] : [])),
-    ...(user && localCount > 0 ? [[`Import ${localCount} items from this device`, importLocal]] : []),
-    ['Trash', () => $('#btn-trash').click()],
-    ['Templates…', () => tpl.open()],
-    ['Save this board as template…', () => tpl.saveCurrent()],
+    ...(user ? [[t('menu.signedIn', { email: user.email }), () => {}], [t('menu.signOut'), async () => { await backend.signOut(); localStorage.removeItem('corkboard.guest'); location.reload(); }]] : (window.corkboardAuth ? [[t('menu.signIn'), () => { localStorage.removeItem('corkboard.guest'); location.reload(); }]] : [])),
+    ...(user && localCount > 0 ? [[t('menu.importLocal', { n: localCount }), importLocal]] : []),
+    [t('menu.trash'), () => $('#btn-trash').click()],
+    [t('menu.templates'), () => tpl.open()],
+    [t('menu.saveTemplate'), () => tpl.saveCurrent()],
     ...installItem(),
-    ['Search…', () => $('#btn-search').click()],
-    ['Present this board', () => present.start()],
-    ['Zoom to fit', () => view.fitAll({ animate: true })],
-    ...(store.prefs.theme !== 'system' ? [['Follow system light/dark', () => store.setPref('theme', 'system')]] : []),
-    [`Minimap: ${store.prefs.minimap !== false ? 'on' : 'off'}`, () => { store.setPref('minimap', store.prefs.minimap === false); mm.schedule(); }],
-    [`Scroll & zoom speed: ${store.prefs.sensitivity || 'normal'}`, () => { const o = ['low', 'normal', 'high']; store.setPref('sensitivity', o[(o.indexOf(store.prefs.sensitivity || 'normal') + 1) % 3]); toast(`Scroll & zoom speed: ${store.prefs.sensitivity}`); }],
-    [`Snap guides: ${store.prefs.guides !== false ? 'on' : 'off'}`, () => store.setPref('guides', store.prefs.guides === false)],
-    [`Grid: ${store.prefs.grid ? 'on' : 'off'}`, () => store.setPref('grid', !store.prefs.grid)],
-    [`Snap to grid: ${store.prefs.snap ? 'on' : 'off'}`, () => store.setPref('snap', !store.prefs.snap)],
-    ['Export all data (JSON)', exportJson], ['Import data (JSON)…', importJson], ['Shortcuts & help', () => $('#dlg-help').showModal()],
+    [t('menu.search'), () => $('#btn-search').click()],
+    [t('menu.present'), () => present.start()],
+    [t('menu.fit'), () => view.fitAll({ animate: true })],
+    ...(store.prefs.theme !== 'system' ? [[t('menu.followSystem'), () => store.setPref('theme', 'system')]] : []),
+    [t('menu.minimap', { state: onOff(store.prefs.minimap !== false) }), () => { store.setPref('minimap', store.prefs.minimap === false); mm.schedule(); }],
+    [t('menu.speed', { value: t('speed.' + (store.prefs.sensitivity || 'normal')) }), () => { const o = ['low', 'normal', 'high']; store.setPref('sensitivity', o[(o.indexOf(store.prefs.sensitivity || 'normal') + 1) % 3]); toast(t('menu.speed', { value: t('speed.' + store.prefs.sensitivity) })); }],
+    [t('menu.guides', { state: onOff(store.prefs.guides !== false) }), () => store.setPref('guides', store.prefs.guides === false)],
+    [t('menu.grid', { state: onOff(store.prefs.grid) }), () => store.setPref('grid', !store.prefs.grid)],
+    [t('menu.snap', { state: onOff(store.prefs.snap) }), () => store.setPref('snap', !store.prefs.snap)],
+    [t('menu.language', { name: langName() }), langMenu],
+    [t('menu.export'), exportJson], [t('menu.import'), importJson], [t('menu.help'), () => $('#dlg-help').showModal()],
   ]);
 
   const tpl = setupTemplates({ store, view, backend, user, toast });
@@ -165,19 +168,19 @@ export async function startApp({ backend = null, user = null } = {}) {
   function importJson() {
     const i = Object.assign(document.createElement('input'), { type: 'file', accept: 'application/json' });
     i.onchange = async () => {
-      try { if (!confirm('Importing replaces everything currently stored in this browser. Continue?')) return; store.importJSON(await i.files[0].text()); location.hash = '#/' + store.rootId; toast('Import complete'); }
-      catch (e) { toast('Import failed: ' + e.message); }
+      try { if (!confirm(t('toast.importConfirm'))) return; store.importJSON(await i.files[0].text()); location.hash = '#/' + store.rootId; toast(t('toast.importDone')); }
+      catch (e) { toast(t('toast.importFail', { err: e.message })); }
     };
     i.click();
   }
 
   // ---------------------------------------------------------------- install / update / share target
-  window.addEventListener('corkboard:updated', () => toast('A new version of Lorenote is ready.', () => location.reload(), 'Reload', 20000));
+  window.addEventListener('corkboard:updated', () => toast(t('toast.updateReady'), () => location.reload(), t('toast.reload'), 20000));
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   function installItem() {
     if (standalone) return [];
-    if (window.corkboardInstall) return [['Install app', async () => { const p = window.corkboardInstall; p.prompt(); await p.userChoice; window.corkboardInstall = null; }]];
-    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return [['Install: Share → Add to Home Screen', () => toast('In Safari tap the Share button, then “Add to Home Screen”.', null, '', 8000)]];
+    if (window.corkboardInstall) return [[t('menu.install'), async () => { const p = window.corkboardInstall; p.prompt(); await p.userChoice; window.corkboardInstall = null; }]];
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return [[t('menu.installIos'), () => toast(t('toast.iosInstall'), null, '', 8000)]];
     return [];
   }
   // opened from the OS share sheet (?title=&text=&url=) or the “New note” shortcut (?new=note)
@@ -190,26 +193,26 @@ export async function startApp({ backend = null, user = null } = {}) {
         if (url) { const el = inter.create('link', at, { url, title: title || url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] }); view.onLinkPreview(el.id, url); }
         else if (text) inter.create('note', at, { html: text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\n/g, '<br>') });
         else inter.create('note', at);
-        toast('Added to Home');
+        toast(t('toast.addedHome'));
       }, 400);
     }
   }
 
   // ---------------------------------------------------------------- import boards made before signing in
   async function importLocal() {
-    const snap = await Store.peek('local'); if (!snap || !snap.elements) return toast('No local boards found on this device');
+    const snap = await Store.peek('local'); if (!snap || !snap.elements) return toast(t('toast.noLocal'));
     const root = snap.elements[snap.rootId]; const rest = Object.values(snap.elements).filter((e) => e.id !== snap.rootId);
-    if (!rest.length) return toast('No local boards found on this device');
+    if (!rest.length) return toast(t('toast.noLocal'));
     const ids = new Set(rest.map((e) => e.id)); let z = store.maxZ(store.rootId);
-    const ch = [{ id: root.id, after: { ...root, parentId: store.rootId, section: 'canvas', x: 80, y: 80, z: ++z, w: 96, content: { title: 'Imported from this device', icon: '📥', tint: '#7aa2f7' } } }];
+    const ch = [{ id: root.id, after: { ...root, parentId: store.rootId, section: 'canvas', x: 80, y: 80, z: ++z, w: 96, content: { title: t('toast.importedTitle'), icon: '📥', tint: '#7aa2f7' } } }];
     for (const e of rest) if (!store.get(e.id)) ch.push({ id: e.id, after: e });
     store.commit(ch, { label: 'Import local boards' });
     localStorage.setItem('corkboard.imported:' + user.id, '1');
-    toast(`Imported ${rest.length} items into a board called “Imported from this device”`, () => store.undo());
+    toast(t('toast.imported', { n: rest.length, title: t('toast.importedTitle') }), () => store.undo());
   }
   if (user && localCount > 0 && !localStorage.getItem('corkboard.imported:' + user.id)) {
     localStorage.setItem('corkboard.imported:' + user.id, 'asked');
-    setTimeout(() => toast(`You have ${localCount} items saved on this device from before you signed in.`, importLocal, 'Import them', 15000), 800);
+    setTimeout(() => toast(t('toast.localFound', { n: localCount }), importLocal, t('toast.importThem'), 15000), 800);
   }
 
   // ---------------------------------------------------------------- trash
@@ -218,25 +221,25 @@ export async function startApp({ backend = null, user = null } = {}) {
   function renderTrash() {
     const list = $('#trash-list'); list.replaceChildren();
     const items = trashItems();
-    if (!items.length) list.textContent = 'Trash is empty.';
+    if (!items.length) list.textContent = t('trash.isEmpty');
     for (const e of items) {
       const row = document.createElement('div'); row.className = 'row';
       row.innerHTML = '<span class="tag"></span><span class="txt"></span>';
-      row.querySelector('.tag').textContent = TYPE_LABEL[e.type]; row.querySelector('.txt').textContent = elementText(e).slice(0, 80) || '(empty)';
-      const restore = Object.assign(document.createElement('button'), { className: 'tb', textContent: 'Restore', type: 'button' });
+      row.querySelector('.tag').textContent = TYPE_LABEL[e.type]; row.querySelector('.txt').textContent = elementText(e).slice(0, 80) || t('trash.emptyItem');
+      const restore = Object.assign(document.createElement('button'), { className: 'tb', textContent: t('trash.restore'), type: 'button' });
       restore.onclick = () => {
         const parent = store.live(e.parentId); const after = { ...e, trashed: false, trashedAt: undefined };
         if (!parent) Object.assign(after, { parentId: view.boardId, section: 'canvas', x: 80, y: 80, z: store.maxZ(view.boardId) + 1, w: e.w || 240 });
         store.commit([{ id: e.id, after }], { label: 'Restore' }); renderTrash();
       };
-      const del = Object.assign(document.createElement('button'), { className: 'tb danger', textContent: 'Delete forever', type: 'button' });
+      const del = Object.assign(document.createElement('button'), { className: 'tb danger', textContent: t('trash.deleteForever'), type: 'button' });
       del.onclick = () => { store.commit([e, ...store.descendants(e.id, true)].map((x) => ({ id: x.id, after: null })), { label: 'Delete forever' }); renderTrash(); };
       row.append(restore, del); list.append(row);
     }
   }
   $('#btn-trash').onclick = () => { renderTrash(); trashDlg.showModal(); };
   $('#trash-empty').onclick = () => {
-    const items = trashItems(); if (!items.length || !confirm(`Permanently delete ${items.length} item(s)?`)) return;
+    const items = trashItems(); if (!items.length || !confirm(t('trash.confirmEmpty', { n: items.length }))) return;
     store.commit(items.flatMap((e) => [e, ...store.descendants(e.id, true)]).map((x) => ({ id: x.id, after: null })), { label: 'Empty trash' }); renderTrash();
   };
 
@@ -248,23 +251,23 @@ export async function startApp({ backend = null, user = null } = {}) {
     const here = () => { const r = dom.viewport.getBoundingClientRect(); const p = view.toWorld(r.left + r.width / 2, r.top + r.height / 2); return { parentId: view.boardId, section: 'canvas', x: p.x - 110, y: p.y - 60 }; };
     const make = (type) => () => { const el = inter.create(type, here()); view.render(); if (el) view.select([el.id]); };
     const COMMANDS = [
-      ['New note', make('note')], ['New to-do list', make('todo')], ['New database', make('database')], ['New table', make('table')], ['New column', make('column')], ['New board', make('board')],
-      ['Toggle light / dark', () => $('#btn-theme').click()], ['Present this board', () => $('#btn-present').click()], ['Zoom to fit', () => $('#btn-fit').click()],
-      ['Browse templates', () => $('#btn-templates').click()], ['Show all boards', () => $('#btn-tree').click()], ['Open trash', () => $('#btn-trash').click()], ['Shortcuts & help', () => $('#dlg-help').showModal()],
+      [t('cmd.note'), make('note')], [t('cmd.todo'), make('todo')], [t('cmd.database'), make('database')], [t('cmd.table'), make('table')], [t('cmd.column'), make('column')], [t('cmd.board'), make('board')],
+      [t('cmd.theme'), () => $('#btn-theme').click()], [t('cmd.present'), () => $('#btn-present').click()], [t('cmd.fit'), () => $('#btn-fit').click()],
+      [t('cmd.templates'), () => $('#btn-templates').click()], [t('cmd.boards'), () => $('#btn-tree').click()], [t('cmd.trash'), () => $('#btn-trash').click()], [t('cmd.help'), () => $('#dlg-help').showModal()],
     ].filter(([name]) => !q || name.toLowerCase().includes(q));
     for (const [name, run] of COMMANDS.slice(0, q ? 5 : 20)) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'row cmd';
-      row.innerHTML = '<span class="tag">Do</span><span class="txt"></span><span class="where">command</span>'; row.querySelector('.txt').textContent = name;
+      row.innerHTML = '<span class="tag"></span><span class="txt"></span><span class="where"></span>'; row.querySelector('.tag').textContent = t('search.do'); row.querySelector('.where').textContent = t('search.cmd'); row.querySelector('.txt').textContent = name;
       row.onclick = () => { searchDlg.close(); run(); }; list.append(row);
     }
     if (!q) return;
     const hits = Object.values(store.elements).filter((e) => !e.trashed && e.id !== store.rootId && e.type !== 'line' && elementText(e).toLowerCase().includes(q)).slice(0, 60);
-    if (!hits.length && !COMMANDS.length) list.textContent = 'No matches.';
+    if (!hits.length && !COMMANDS.length) list.textContent = t('search.none');
     for (const e of hits) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'row';
       row.innerHTML = '<span class="tag"></span><span class="txt"></span><span class="where"></span>';
       row.querySelector('.tag').textContent = TYPE_LABEL[e.type]; row.querySelector('.txt').textContent = elementText(e).replace(/\s+/g, ' ').slice(0, 90);
-      row.querySelector('.where').textContent = boardOf(e).content.title;
+      row.querySelector('.where').textContent = boardName(boardOf(e));
       row.onclick = () => { searchDlg.close(); if (e.type === 'board') { view.setBoard(e.id); renderCrumbs(); } else reveal(e); };
       list.append(row);
     }
@@ -286,6 +289,13 @@ export async function startApp({ backend = null, user = null } = {}) {
   view.setBoard(idFromHash());
   syncChrome();
   view.render();
+  window.addEventListener('lang-change', () => {
+    for (const rec of view.nodes.values()) rec.node.remove();                 // cards bake placeholders and labels in when built: rebuild them
+    view.nodes.clear(); dom.contextBar.dataset.sig = '';
+    view.render(); syncChrome(); paintSync(); tree.render();
+    if (trashDlg.open) renderTrash();
+    if (searchDlg.open) runSearch();
+  });
   window.lorenote = window.corkboard = { store, view, inter, tree, present, mm, files: { migrate: migrateInlineFiles, cleanOrphans: cleanOrphanFiles } }; // handy for debugging in devtools
 
 }

@@ -1,4 +1,5 @@
 // Slash menu for notes: type "/" to turn the current line into a heading, list, quote, code block, divider and more.
+import { t } from './i18n.js';
 const ITEMS = [
   { k: 'h', label: 'Heading', hint: 'Big section title', words: 'heading title h2', run: () => block('h2') },
   { k: 'h3', label: 'Subheading', hint: 'Smaller title', words: 'subheading h3 title', run: () => block('h3') },
@@ -30,13 +31,13 @@ function slashContext(ed) {
 export function attachSlash(ed) {
   let ctx = null, index = 0, shown = [];
   const draw = () => {
-    shown = ITEMS.filter((it) => !ctx.query || (it.label + ' ' + it.words).toLowerCase().includes(ctx.query));
+    shown = ITEMS.filter((it) => !ctx.query || (t('slash.' + it.k) + ' ' + it.label + ' ' + it.words).toLowerCase().includes(ctx.query));
     if (!shown.length) { close(); return; }
     index = Math.min(index, shown.length - 1);
     if (!menu) { menu = document.createElement('div'); menu.className = 'slash-menu'; menu.setAttribute('role', 'listbox'); menu.addEventListener('mousedown', (e) => e.preventDefault()); document.body.append(menu); }
     menu.replaceChildren(...shown.map((it, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'option'); b.className = i === index ? 'on' : '';
-      const t = document.createElement('b'); t.textContent = it.label; const s = document.createElement('span'); s.textContent = it.hint; b.append(t, s);
+      const tt = document.createElement('b'); tt.textContent = t('slash.' + it.k); const s = document.createElement('span'); s.textContent = t('slash.' + it.k + '.hint'); b.append(tt, s);
       b.addEventListener('click', () => choose(it)); return b;
     }));
     const r = getSelection().getRangeAt(0).cloneRange(); r.collapse(true);
