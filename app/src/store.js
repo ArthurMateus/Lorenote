@@ -77,6 +77,8 @@ export class Store {
 
   get(id) { return this.elements[id] || null; }
   live(id) { const e = this.elements[id]; return e && !e.trashed ? e : null; }
+  /** true when neither the element nor any ancestor is in the trash */
+  reachable(e) { for (let p = e, n = 0; p && n < 200; p = this.elements[p.parentId], n++) if (p.trashed) return false; return true; }
 
   /** non-trashed children of a container in one section, ordered */
   children(parentId, section) {
@@ -270,6 +272,15 @@ export class Store {
   importJSON(text) {
     const d = JSON.parse(text);
     if ((d.app !== 'lorenote' && d.app !== 'corkboard') || !d.elements || !d.rootId) throw new Error('Not a Lorenote export');
+    const KNOWN = new Set(['note', 'link', 'todo', 'task', 'column', 'board', 'comment', 'table', 'database', 'image', 'file', 'sketch', 'line']);
+    const num = (v) => (Number.isFinite(v) ? v : 0);
+    const clean = Object.create(null);      // imported data is untrusted: keep only well-formed elements with sane fields
+    for (const [id, e] of Object.entries(d.elements)) {
+      if (['__proto__', 'constructor', 'prototype'].includes(id) || !e || typeof e !== 'object' || e.id !== id || !KNOWN.has(e.type)) continue;
+      clean[id] = { ...e, content: e.content && typeof e.content === 'object' && !Array.isArray(e.content) ? e.content : {}, x: num(e.x), y: num(e.y), z: num(e.z), w: num(e.w), order: num(e.order), parentId: typeof e.parentId === 'string' ? e.parentId : null };
+    }
+    if (!clean[d.rootId] || clean[d.rootId].type !== 'board') throw new Error('The file has no home board');
+    d.elements = { ...clean }; delete d.elements.__proto__;
     for (const id of Object.keys(this.elements)) this.pending.add(id);        // so removals reach the cloud
     this.elements = d.elements; this.rootId = d.rootId; this.undoStack = []; this.redoStack = [];
     for (const id of Object.keys(this.elements)) this.pending.add(id);

@@ -72,7 +72,7 @@ export function setupSettings(ctx) {
     },
     writing() {
       const goal = h('input', { type: 'number', min: 0, max: 100000, step: 50, class: 'st-num', value: store.prefs.wordGoal || '', placeholder: '0', 'aria-label': t('set.goal') });
-      goal.addEventListener('change', () => { const v = Math.max(0, Math.min(100000, Math.round(Number(goal.value) || 0))); pref('wordGoal', v || null); });
+      goal.addEventListener('change', () => { const v = Math.max(0, Math.min(100000, Math.round(Number(goal.value) || 0))); pref('wordGoal', v || null); goal.value = v || ''; });
       return [group('', row(t('set.goal'), t('set.goal.d'), goal),
         row(t('set.wc'), t('set.wc.d'), toggle(store.prefs.wordCounts !== false, (v) => { pref('wordCounts', v); ctx.view?.render?.(); }, t('set.wc'))),
         row(t('wr.capture'), t('set.capture.d'), action(t('set.open'), closeThen(() => ctx.writer.openCapture()))),

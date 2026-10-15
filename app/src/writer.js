@@ -20,7 +20,7 @@ const htmlText = (html) => { const d = new DOMParser().parseFromString(`<body>${
 export const wordCount = (text) => (String(text || '').match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
 export const noteWords = (html) => wordCount(htmlText(html));
 export const readingMinutes = (words) => Math.max(1, Math.round(words / 230));
-export function totalWords(store) { let n = 0; for (const e of Object.values(store.elements)) if (e.type === 'note' && !e.trashed) n += noteWords(e.content.html); return n; }
+export function totalWords(store) { let n = 0; for (const e of Object.values(store.elements)) if (e.type === 'note' && !e.trashed && store.reachable(e)) n += noteWords(e.content.html); return n; }
 
 // ------------------------------------------------------------------ compile a board to Markdown
 function htmlToMd(html) {
@@ -161,8 +161,8 @@ export function setupWriter(ctx) {
   }
 
   // ---- daily word goal chip
-  const chip = document.querySelector('#wc-chip'); let base = null;
-  const dayKey = () => new Date().toISOString().slice(0, 10);
+  const chip = document.querySelector('#wc-chip'); let base = null, baseDay = null;
+  const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   function baseline(total) {
     try { const s = JSON.parse(localStorage.getItem('lorenote.wc.day') || 'null'); if (s && s.date === dayKey()) return s.start; localStorage.setItem('lorenote.wc.day', JSON.stringify({ date: dayKey(), start: total })); } catch { /* private mode */ }
     return total;
@@ -171,7 +171,7 @@ export function setupWriter(ctx) {
   function paintChip() {
     if (!chip) return; const goal = Number(store.prefs.wordGoal) || 0;
     if (!goal) { chip.hidden = true; return; }
-    const total = totalWords(store); if (base == null) base = baseline(total);
+    const total = totalWords(store); if (base == null || baseDay !== dayKey()) { base = baseline(total); baseDay = dayKey(); }
     const done = Math.max(0, total - base); const pct = Math.min(100, Math.round((done / goal) * 100));
     chip.hidden = false; chip.style.setProperty('--p', pct + '%'); chip.classList.toggle('hit', done >= goal);
     chip.textContent = t('wr.goalChip', { done, goal }); chip.title = t('wr.goalTip', { n: total });

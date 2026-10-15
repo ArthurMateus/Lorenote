@@ -110,7 +110,7 @@ export class View {
       let i = 0;
       for (const e of store.children(parentId, section)) {
         if (e.type === 'line') continue;
-        const rec = this.ensure(e); seen.add(e.id);
+        const rec = this.ensure(e); if (!rec) continue; seen.add(e.id);
         if (host.children[i] !== rec.node) host.insertBefore(rec.node, host.children[i] || null);
         i++;
         if (isContainer(e.type) && rec.body) { place(e.id, rec.body, 'stack'); rec.count?.(); }
@@ -122,17 +122,24 @@ export class View {
     }
     for (const id of [...this.selection]) if (!store.live(id)) this.selection.delete(id);
     this.updateSelectionClasses();
-    this.updateLines();
+    try { this.updateLines(); } catch (err) { console.warn('Skipped connectors that could not be drawn', err); }
     this.updateContextBar();
     this.dom.empty.hidden = store.children(board.id, 'canvas').length > 0;
     this.onRendered?.();
   }
 
   ensure(e) {
-    let rec = this.nodes.get(e.id);
-    if (!rec) { rec = this.build(e); this.nodes.set(e.id, rec); }
-    if (rec.el !== e) { this.frame(rec, e); rec.update(e); rec.el = e; }
-    return rec;
+    try {
+      let rec = this.nodes.get(e.id);
+      if (!rec) { rec = this.build(e); this.nodes.set(e.id, rec); }
+      if (rec.el !== e) { this.frame(rec, e); rec.update(e); rec.el = e; }
+      return rec;
+    } catch (err) {
+      // data from an import, an older version or another device can be malformed: skip that card, keep the board usable
+      this.nodes.delete(e.id); if (!this.warned) this.warned = new Set();
+      if (!this.warned.has(e.id)) { this.warned.add(e.id); console.warn('Skipped a card that could not be drawn:', e.type, err); }
+      return null;
+    }
   }
 
   frame(rec, e) {
@@ -341,9 +348,11 @@ const BUILDERS = {
     ed.addEventListener('blur', () => {
       ed.contentEditable = 'false';
       const html = sanitizeHtml(ed.innerHTML);
+      if (ed.innerHTML !== html) ed.innerHTML = html;      // drop anything the editor accepted that the sanitiser would remove (drops, odd paste sources)
       const cur = view.store.live(e.id); if (cur && cur.content.html !== html) patchContent(view, e.id, { html }, 'Edit note');
     });
     ed.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') ed.blur(); ev.stopPropagation(); });
+    ed.addEventListener('drop', (ev) => { if (!ed.isContentEditable) return; ev.preventDefault(); const tx = ev.dataTransfer?.getData('text/plain'); if (tx) document.execCommand('insertText', false, tx); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
     attachSlash(ed);
     const wc = h('div', { class: 'note-wc', 'aria-hidden': 'true' });
@@ -395,7 +404,7 @@ const BUILDERS = {
     const icon = h('div', { class: 'board-icon' });
     const label = h('div', { class: 'board-title', 'data-edit': 'plaintext-only', spellcheck: 'false' });
     const count = h('div', { class: 'board-count' });
-    label.addEventListener('blur', () => { label.contentEditable = 'false'; const t = label.textContent.trim() || t('common.untitled'); const cur = view.store.live(e.id); if (cur && cur.content.title !== t) patchContent(view, e.id, { title: t }, 'Rename board'); });
+    label.addEventListener('blur', () => { label.contentEditable = 'false'; const title = label.textContent.trim() || t('common.untitled'); const cur = view.store.live(e.id); if (cur && cur.content.title !== title) patchContent(view, e.id, { title }, 'Rename board'); });
     label.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); label.blur(); } });
     rec.node.append(icon, label, count); rec.node.dataset.drop = e.id;
     rec.update = (el) => { icon.textContent = el.content.icon; icon.style.background = (el.content.tint || '#7aa2f7') + '33'; icon.style.borderColor = el.content.tint || '#7aa2f7'; if (document.activeElement !== label) label.textContent = el.content.title; };

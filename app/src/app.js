@@ -94,7 +94,10 @@ export async function startApp({ backend = null, user = null } = {}) {
 
 
   // ---------------------------------------------------------------- routing
-  const idFromHash = () => decodeURIComponent(location.hash.replace(/^#\/?/, '')) || store.rootId;
+  const idFromHash = () => {
+    let id = ''; try { id = decodeURIComponent(location.hash.replace(/^#\/?/, '')); } catch { /* malformed escape: fall back to Home */ }
+    const e = id && store.get(id); return e && e.type === 'board' && store.reachable(e) ? id : store.rootId;
+  };
   view.onOpen = (id) => { location.hash = '#/' + id; };
   addEventListener('hashchange', () => { view.setBoard(idFromHash()); renderCrumbs(); });
 
@@ -259,7 +262,7 @@ export async function startApp({ backend = null, user = null } = {}) {
       row.onclick = () => { searchDlg.close(); run(); }; list.append(row);
     }
     if (!q) return;
-    const hits = Object.values(store.elements).filter((e) => !e.trashed && e.id !== store.rootId && e.type !== 'line' && elementText(e).toLowerCase().includes(q)).slice(0, 60);
+    const hits = Object.values(store.elements).filter((e) => !e.trashed && e.id !== store.rootId && e.type !== 'line' && store.reachable(e) && elementText(e).toLowerCase().includes(q)).slice(0, 60);
     if (!hits.length && !COMMANDS.length) list.textContent = t('search.none');
     for (const e of hits) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'row';

@@ -3,6 +3,7 @@
 // "Open" shows the full editor in a dialog. Rows can be imported from / exported to CSV.
 import { uid } from './store.js';
 import { t, getLang } from './i18n.js';
+import { safeColor } from './model.js';
 
 export const PROP_TYPES = [['text', 'Text'], ['select', 'Select'], ['status', 'Status'], ['date', 'Date'], ['checkbox', 'Checkbox'], ['number', 'Number'], ['url', 'Link']];
 export const VIEW_TYPES = [['table', 'Table'], ['board', 'Board'], ['gallery', 'Gallery'], ['list', 'List'], ['calendar', 'Calendar'], ['chart', 'Chart']];
@@ -74,28 +75,32 @@ export function buildPreview(rec, e, view) {
     const av = c.views.find((v) => v.id === c.activeView);
     badge.textContent = `${(c.rows || []).length} · ${t('db.vt.' + (av?.type || 'table'))}${c.locked ? ' · 🔒' : ''}`;
     const status = c.props.find((p) => p.id === av?.groupBy) || c.props.find((p) => p.type === 'status' || p.type === 'select');
-    body.replaceChildren(...(c.rows || []).slice(0, 6).map((r) => {
+    const prevRows = (c.rows || []).slice(0, 6).map((r) => {
       const tx = status ? cellText(status, r.cells[status.id]) : '';
       const o = status ? optOf(status, r.cells[status.id]) : null;
-      return h('div', { class: 'db-prev-row' }, h('span', { class: 'db-prev-t' }, r.title || t('db.row')), tx ? h('span', { class: 'db-chip', style: `--c:${o?.color || '#9aa5b8'}` }, tx) : null);
-    }), (c.rows || []).length > 6 ? h('div', { class: 'db-more' }, t('db.more', { n: c.rows.length - 6 })) : null);
+      return h('div', { class: 'db-prev-row' }, h('span', { class: 'db-prev-t' }, r.title || t('db.row')), tx ? h('span', { class: 'db-chip', style: `--c:${safeColor(o?.color, '#9aa5b8')}` }, tx) : null);
+    });
+    if ((c.rows || []).length > 6) prevRows.push(h('div', { class: 'db-more' }, t('db.more', { n: c.rows.length - 6 })));
+    body.replaceChildren(...prevRows);
   };
 }
 
 // ------------------------------------------------------------------ CSV
 export function toCsv(c) {
-  const q = (v) => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const q = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s) && !(typeof v === 'number')) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const head = [t('db.name'), ...c.props.map((p) => p.name)];
   const body = c.rows.map((r) => [r.title, ...c.props.map((p) => (p.type === 'checkbox' ? (r.cells[p.id] ? 'true' : 'false') : p.type === 'select' || p.type === 'status' ? cellText(p, r.cells[p.id]) : r.cells[p.id] ?? ''))]);
   return [head, ...body].map((l) => l.map(q).join(',')).join('\r\n');
 }
 export function parseCsv(text) {
+  text = String(text).replace(/^\uFEFF/, '');
+  const first = text.split(/\r?\n/)[0] || ''; const delim = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',';
   const rows = []; let row = [], cur = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (inQ) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += ch; }
     else if (ch === '"') inQ = true;
-    else if (ch === ',') { row.push(cur); cur = ''; }
+    else if (ch === delim) { row.push(cur); cur = ''; }
     else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
     else cur += ch;
   }
@@ -157,7 +162,7 @@ export function openDatabase(store, id) {
   const set = (fn, label, merge) => {
     const cur = store.live(id); if (!cur) return;
     const c = normalize(structuredClone(cur.content));
-    if (c.locked && !/view|lock/i.test(label || '')) return;      // a locked database can still be browsed (views, filters) but not edited
+    if (c.locked && !/view|lock|calendar/i.test(label || '')) return;      // a locked database can still be browsed (views, filters) but not edited
     store.commit([{ id, after: { ...cur, content: fn(c) || c } }], { label, merge });
     render();
   };
@@ -193,7 +198,7 @@ export function openDatabase(store, id) {
     const dis = c.locked;
     if (prop.type === 'checkbox') { const i = h('input', { type: 'checkbox', disabled: dis }); i.checked = !!v; i.addEventListener('change', () => put(i.checked)); return i; }
     if (prop.type === 'select' || prop.type === 'status') {
-      const s = sel([['', '—'], ...prop.options.map((o) => [o.id, o.label])], v || '', put, { class: 'db-sel', disabled: dis }); s.style.setProperty('--c', optOf(prop, v)?.color || 'transparent'); return s;
+      const s = sel([['', '—'], ...prop.options.map((o) => [o.id, o.label])], v || '', put, { class: 'db-sel', disabled: dis }); s.style.setProperty('--c', safeColor(optOf(prop, v)?.color, 'transparent')); return s;
     }
     if (prop.type === 'date') { const i = h('input', { type: 'date', value: v || '', disabled: dis }); i.addEventListener('change', () => put(i.value)); return i; }
     if (prop.type === 'number') return input(v ?? '', (x) => put(x === '' ? '' : Number(x)), { type: 'number', step: 'any', disabled: dis });
@@ -225,7 +230,8 @@ export function openDatabase(store, id) {
     if (prop.type === 'select' || prop.type === 'status') {
       m.append(h('label', {}, t('db.options'), input(prop.options.map((o) => o.label).join(', '), (val) => set((n) => {
         const p = n.props.find((x) => x.id === prop.id); const labels = val.split(',').map((s) => s.trim()).filter(Boolean);
-        p.options = labels.map((l, i) => p.options.find((o) => o.label === l) || opt(l, i)); return n;
+        const old = p.options; p.options = labels.map((l, i) => old.find((o) => o.label === l) || (old[i] && !labels.includes(old[i].label) ? { ...old[i], label: l } : opt(l, i))); return n;      // a renamed option keeps its id, so rows keep their value
+
       }, 'Edit options'))));
     }
     m.append(h('button', { type: 'button', class: 'tb danger', onclick: () => { menu = null; set((n) => { n.props = n.props.filter((p) => p.id !== prop.id); for (const v of n.views) { if (v.groupBy === prop.id) v.groupBy = null; v.filters = v.filters.filter((f) => f.prop !== prop.id); if (v.sort?.prop === prop.id) v.sort = null; } return n; }, 'Delete property'); } }, t('db.deleteProp')));
@@ -244,7 +250,7 @@ export function openDatabase(store, id) {
       h('td', { class: 'db-td-x' }, h('button', { type: 'button', class: 'ib', 'aria-label': t('db.delRow'), title: t('db.delRow'), disabled: c.locked, onclick: () => delRow(r.id) }, '×'))))));
     return h('div', { class: 'db-scroll' }, tbl, c.locked ? null : h('button', { type: 'button', class: 'tb db-add', onclick: () => addRow() }, t('db.newRow')));
   }
-  const chips = (c, v, r, skip) => c.props.filter((p) => p.id !== skip && !v.hidden.includes(p.id)).map((p) => { const tx = cellText(p, r.cells[p.id]); if (!tx) return null; const o = optOf(p, r.cells[p.id]); return h('span', { class: 'db-chip', style: `--c:${o?.color || '#9aa5b8'}`, title: p.name }, tx); });
+  const chips = (c, v, r, skip) => c.props.filter((p) => p.id !== skip && !v.hidden.includes(p.id)).map((p) => { const tx = cellText(p, r.cells[p.id]); if (!tx) return null; const o = optOf(p, r.cells[p.id]); return h('span', { class: 'db-chip', style: `--c:${safeColor(o?.color, '#9aa5b8')}`, title: p.name }, tx); });
   const groupProp = (c, v) => c.props.find((p) => p.id === v.groupBy && (p.type === 'select' || p.type === 'status')) || c.props.find((p) => p.type === 'status' || p.type === 'select');
 
   function boardView(c, v) {
@@ -259,7 +265,7 @@ export function openDatabase(store, id) {
         card.addEventListener('dragend', () => card.classList.remove('dragging'));
         return card;
       }));
-      const colEl = h('div', { class: 'db-col' }, h('div', { class: 'db-col-head' }, h('span', { class: 'db-dot', style: `background:${col.color}` }), col.label, h('span', { class: 'db-count' }, String(list.children.length))), list,
+      const colEl = h('div', { class: 'db-col' }, h('div', { class: 'db-col-head' }, h('span', { class: 'db-dot', style: `background:${safeColor(col.color, '#9aa5b8')}` }), col.label, h('span', { class: 'db-count' }, String(list.children.length))), list,
         c.locked ? null : h('button', { type: 'button', class: 'tb db-add', onclick: () => addRow(col.key ? { [gp.id]: col.key } : {}) }, t('db.new')));
       colEl.addEventListener('dragover', (ev) => { ev.preventDefault(); colEl.classList.add('over'); });
       colEl.addEventListener('dragleave', () => colEl.classList.remove('over'));
@@ -298,7 +304,7 @@ export function openDatabase(store, id) {
     if (!gp) return h('div', { class: 'db-empty' }, t('db.needChart'));
     const rows = rowsOf(c, v); const groups = [...gp.options.map((o) => ({ label: o.label, color: o.color, n: rows.filter((r) => r.cells[gp.id] === o.id).length })), { label: t('db.noValue'), color: '#9aa5b8', none: true, n: rows.filter((r) => !r.cells[gp.id]).length }].filter((g) => g.n || !g.none);
     const max = Math.max(1, ...groups.map((g) => g.n));
-    return h('div', { class: 'db-chart' }, h('div', { class: 'muted' }, t('db.chartSummary', { n: rows.length, name: gp.name })), ...groups.map((g) => h('div', { class: 'db-bar-row' }, h('span', { class: 'db-bar-l' }, g.label), h('span', { class: 'db-bar-track' }, h('span', { class: 'db-bar-fill', style: `width:${(g.n / max) * 100}%;background:${g.color}` })), h('span', { class: 'db-bar-n' }, String(g.n)))));
+    return h('div', { class: 'db-chart' }, h('div', { class: 'muted' }, t('db.chartSummary', { n: rows.length, name: gp.name })), ...groups.map((g) => h('div', { class: 'db-bar-row' }, h('span', { class: 'db-bar-l' }, g.label), h('span', { class: 'db-bar-track' }, h('span', { class: 'db-bar-fill', style: `width:${(g.n / max) * 100}%;background:${safeColor(g.color, '#9aa5b8')}` })), h('span', { class: 'db-bar-n' }, String(g.n)))));
   }
 
   // ---- chrome
@@ -335,7 +341,7 @@ export function openDatabase(store, id) {
   }
 
   function download(name, text, type) {
-    const a = h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    const a = h('a', { href: URL.createObjectURL(new Blob([type === 'text/csv' ? '\uFEFF' + text : text], { type })), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
   file.addEventListener('change', async () => {
     const f = file.files[0]; file.value = ''; if (!f || f.size > 4 * 1024 * 1024) return;

@@ -476,7 +476,8 @@ export function setupInteractions(view, toast) {
 
   // ------------------------------------------------------------------ keyboard
   document.addEventListener('keydown', (ev) => {
-    if (ev.code === 'Space' && !isEditing(ev.target)) { space = true; vp.classList.add('pannable'); ev.preventDefault(); }
+    if (document.querySelector('dialog[open]')) return;      // shortcuts must not act on the board behind a dialog
+    if (ev.code === 'Space' && !isEditing(ev.target) && !ev.target.closest?.('button,a,select,summary,[role=switch],[role=tab],[role=radio]')) { space = true; vp.classList.add('pannable'); ev.preventDefault(); }
     const mod = ev.ctrlKey || ev.metaKey;
     const editing = isEditing(ev.target);
     if (mod && !ev.shiftKey && ev.key.toLowerCase() === 'z' && !editing) { ev.preventDefault(); if (!store.undo()) toast(t('toast.nothingUndo')); return; }

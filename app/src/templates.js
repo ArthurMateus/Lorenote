@@ -170,7 +170,7 @@ const brief = (sections, extras = []) => [
 ];
 
 // ------------------------------------------------------------------ built-in library
-export const CATEGORIES = ['Fiction', 'Nonfiction', 'Writing life', 'Writing', 'Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Writing', 'Product & UX', 'Marketing', 'Education', 'Personal', 'Design', 'Business', 'Media', 'Making & Dev'];
+export const CATEGORIES = ['Fiction', 'Nonfiction', 'Writing life', 'Writing', 'Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Product & UX', 'Marketing', 'Education', 'Personal', 'Design', 'Business', 'Media', 'Making & Dev'];
 
 const L = [];
 const add = (id, name, category, description, nodes) => {
@@ -226,7 +226,7 @@ add('website-brief', 'Website brief', 'Briefs', 'Pages, purpose and content for 
   T.table(420, 210, [['Page', 'Content needed', 'Owner'], ['', '', ''], ['', '', '']], { w: 480 })]);
 
 // ---- Moodboards
-const tiles = (x0, y0, nx, ny, w = 180, gap = 14, ratios = [0.75, 1, 0.66]) => Array.from({ length: nx * ny }, (_, i) => T.image(x0 + (i % nx) * (w + gap), y0 + Math.floor(i / nx) * (w * 0.9 + gap), w, ratios[i % ratios.length]));
+const tiles = (x0, y0, nx, ny, w = 180, gap = 14, ratios = [0.75, 1, 0.66]) => Array.from({ length: nx * ny }, (_, i) => T.image(x0 + (i % nx) * (w + gap), y0 + Math.floor(i / nx) * (w * 1.05 + gap), w, ratios[i % ratios.length]));
 add('moodboard', 'Moodboard', 'Moodboards', 'A wall of images with a palette and a few keywords.', () => [
   ...tiles(60, 60, 3, 2), T.note(680, 60, nt('Keywords', 'Warm · quiet · handmade'), { w: 200, color: Y }), T.note(680, 170, '', { w: 60, color: R }), T.note(750, 170, '', { w: 60, color: B }), T.note(820, 170, '', { w: 60, color: G })]);
 add('brand-board', 'Brand board', 'Moodboards', 'Logo, palette, type and voice in one view.', () => [
@@ -341,7 +341,7 @@ add('architecture', 'Architecture project', 'Design', 'Site, concept and drawing
   T.note(60, 60, nt('Site', 'Place, climate, rules, neighbours.'), { w: 260, color: Y }), T.note(60, 200, nt('Concept', 'The idea in one paragraph.'), { w: 260, color: B }),
   T.sketch(350, 60, { w: 300, h: 220 }), T.image(670, 60, 220, 0.75), T.image(670, 240, 220, 0.75), T.table(350, 310, [['Drawing', 'Status'], ['Plan', ''], ['Section', ''], ['Elevation', '']], { w: 300 })]);
 add('fashion', 'Fashion collection', 'Design', 'Inspiration, sketches and a look list.', () => [
-  ...tiles(60, 60, 3, 1, 180), T.sketch(60, 260, { w: 240 }), T.sketch(320, 260, { w: 240 }), T.table(600, 60, [['Look', 'Fabric', 'Colour'], ['1', '', ''], ['2', '', ''], ['3', '', '']], { w: 380 }), T.todo(600, 250, 'Make', ['Patterns', 'Samples', 'Fittings'], { w: 260 })]);
+  ...tiles(60, 60, 3, 1, 180), T.sketch(60, 260, { w: 240 }), T.sketch(320, 260, { w: 240 }), T.table(700, 60, [['Look', 'Fabric', 'Colour'], ['1', '', ''], ['2', '', ''], ['3', '', '']], { w: 380 }), T.todo(700, 250, 'Make', ['Patterns', 'Samples', 'Fittings'], { w: 260 })]);
 add('game-design', 'Game design doc', 'Design', 'Pitch, mechanics, levels and what to build next.', () => [
   T.note(60, 60, nt('Pitch', 'The game in two sentences.'), { w: 280, color: Y }), T.note(60, 190, nt('Core loop', 'What does the player do again and again?'), { w: 280, color: B }),
   T.table(380, 60, [['Level', 'Idea', 'Status'], ['1', '', ''], ['2', '', ''], ['3', '', '']], { w: 400 }), ...columns(['Backlog', 'Building', 'Playtest'], [stackNotes(['First mechanic'], Y), [], []], { x0: 60, y: 340, gap: 250, w: 220 })]);
@@ -353,11 +353,11 @@ add('motion-design', 'Motion design plan', 'Design', 'Style frames, timing and a
 add('startup-plan', 'Startup one-pager', 'Business', 'Problem, solution, market and what you need next.', () => brief([
   ['Problem', 'Who hurts, and how much?'], ['Solution', 'What do you offer instead?'], ['Market', 'How many people could use it?'], ['How you earn', 'Price and who pays.'], ['Edge', 'Why you, why now?'], ['Next 90 days', 'Three things that prove it works.']],
   [T.table(660, 60, [['Metric', 'Today', 'Goal'], ['Users', '', ''], ['Revenue', '', ''], ['Runway', '', '']], { w: 320 })]));
-add('product-roadmap', 'Product roadmap', 'Business', 'Now, next and later, with the reasons behind each bet.', () => columns(['Now', 'Next', 'Later'], [stackNotes(['Fix onboarding'], G), stackNotes(['New feature idea'], Y), stackNotes(['Big experiment'], B)], { w: 300, gap: 330 }));
+add('product-roadmap-2', 'Product roadmap', 'Business', 'Now, next and later, with the reasons behind each bet.', () => columns(['Now', 'Next', 'Later'], [stackNotes(['Fix onboarding'], G), stackNotes(['New feature idea'], Y), stackNotes(['Big experiment'], B)], { w: 300, gap: 330 }));
 add('market-research', 'Market research', 'Business', 'Competitors, customers and what you will do about it.', () => [
   T.table(60, 60, [['Competitor', 'Strength', 'Weakness', 'Price'], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 560 }), T.note(60, 260, nt('Customers', 'Who they are, what they do today.'), { w: 270, color: Y }),
   T.note(350, 260, nt('Gaps', 'What nobody does well yet.'), { w: 270, color: G }), T.link(660, 60), T.link(660, 170), T.todo(660, 280, 'Next', ['Talk to five customers', 'Summarise findings'], { w: 260 })]);
-add('swot', 'SWOT analysis', 'Business', 'Strengths, weaknesses, opportunities and threats.', () => [
+add('swot-2', 'SWOT analysis', 'Business', 'Strengths, weaknesses, opportunities and threats.', () => [
   T.col(60, 60, 'Strengths', stackNotes(['What we do well'], G), { w: 320 }), T.col(410, 60, 'Weaknesses', stackNotes(['What holds us back'], R), { w: 320 }),
   T.col(60, 320, 'Opportunities', stackNotes(['What could help us'], B), { w: 320 }), T.col(410, 320, 'Threats', stackNotes(['What could hurt us'], O), { w: 320 })]);
 add('brand-workshop', 'Brand workshop', 'Business', 'Exercises to agree what a brand stands for.', () => [
@@ -372,7 +372,7 @@ add('event-marketing', 'Event run sheet', 'Business', 'Run of show, roles and su
 add('meeting-notes', 'Meeting notes', 'Business', 'Agenda, decisions and who does what next.', () => [
   T.note(60, 60, nt('Agenda', 'Topics in order.'), { w: 260, color: Y }), T.note(340, 60, nt('Decisions', 'What did we agree?'), { w: 260, color: G }), T.todo(620, 60, 'Actions', ['Owner · task · date'], { w: 260 }),
   T.note(60, 200, nt('Notes', 'Anything worth keeping.'), { w: 540 })]);
-add('sprint-board', 'Sprint board', 'Business', 'A two-week sprint from backlog to shipped.', () => [
+add('sprint-board-2', 'Sprint board', 'Business', 'A two-week sprint from backlog to shipped.', () => [
   T.note(60, 60, nt('Sprint goal', 'One sentence the whole team can repeat.'), { w: 400, color: P }), ...columns(['Backlog', 'In progress', 'Review', 'Shipped'], [stackNotes(['Story'], Y), [], [], []], { x0: 60, y: 200, gap: 270, w: 250 })]);
 
 // ---- Media
@@ -380,8 +380,8 @@ add('podcast', 'Podcast planner', 'Media', 'Episode ideas, an outline and a publ
   T.col(60, 60, 'Ideas', stackNotes(['Topic or guest'], Y), { w: 250 }), T.note(330, 60, nt('Episode outline', 'Hook · story · takeaway · call to action.'), { w: 280, color: B }),
   T.todo(330, 220, 'Publish', ['Record', 'Edit', 'Show notes', 'Cover art', 'Upload'], { w: 280 }), T.table(640, 60, [['Ep', 'Title', 'Date'], ['1', '', ''], ['2', '', ''], ['3', '', '']], { w: 320 })]);
 add('photo-shoot', 'Photo shoot plan', 'Media', 'Look references, shot list and the day schedule.', () => [
-  ...tiles(60, 60, 3, 1, 180), T.todo(60, 250, 'Shot list', ['Wide', 'Detail', 'Portrait', 'Action'], { w: 260 }), T.table(350, 250, [['Time', 'Where', 'Notes'], ['', '', ''], ['', '', ''], ['', '', '']], { w: 400 }), T.note(60, 450, nt('Gear', 'Camera, lenses, lights, spare batteries.'), { w: 260, color: Y })]);
-add('content-calendar', 'Content calendar', 'Media', 'Plan posts across the month and track what is ready.', () => [
+  ...tiles(60, 60, 3, 1, 180), T.todo(60, 250, 'Shot list', ['Wide', 'Detail', 'Portrait', 'Action'], { w: 260 }), T.table(350, 250, [['Time', 'Where', 'Notes'], ['', '', ''], ['', '', ''], ['', '', '']], { w: 400 }), T.note(60, 520, nt('Gear', 'Camera, lenses, lights, spare batteries.'), { w: 260, color: Y })]);
+add('content-calendar-2', 'Content calendar', 'Media', 'Plan posts across the month and track what is ready.', () => [
   ...['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((w, i) => T.col(60 + i * 250, 60, w, stackNotes(['Post idea'], i === 0 ? Y : null), { w: 230 })), T.todo(60, 420, 'Every week', ['Plan', 'Create', 'Schedule', 'Review numbers'], { w: 260 })]);
 add('filmmaking', 'Film production', 'Media', 'Script, cast, locations and the shoot schedule.', () => [
   T.note(60, 60, nt('Logline', 'The film in one sentence.'), { w: 280, color: Y }), T.table(60, 200, [['Scene', 'Place', 'Cast', 'Day'], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 480 }), T.col(580, 60, 'Locations', [T.image(0, 0, 200, 0.6)], { w: 240 }), T.todo(60, 400, 'Before the shoot', ['Permits', 'Rehearsal', 'Equipment check'], { w: 260 })]);
@@ -389,7 +389,7 @@ add('video-channel', 'Video channel plan', 'Media', 'Ideas, scripts and a publis
   T.col(60, 60, 'Ideas', stackNotes(['Video idea'], Y), { w: 230 }), T.col(310, 60, 'Scripting', [], { w: 230 }), T.col(560, 60, 'Filming', [], { w: 230 }), T.col(810, 60, 'Editing', [], { w: 230 }), T.col(1060, 60, 'Live', [], { w: 230, color: G })]);
 
 // ---- Making & Dev
-add('home-renovation', 'Home renovation', 'Making & Dev', 'Rooms, budget and the order of work.', () => [
+add('home-renovation-2', 'Home renovation', 'Making & Dev', 'Rooms, budget and the order of work.', () => [
   T.board(60, 60, 'Kitchen', '🍳', '#e0af68'), T.board(180, 60, 'Bathroom', '🛁', '#7dcfff'), T.board(300, 60, 'Living room', '🛋️', '#9ece6a'), T.table(60, 200, [['Job', 'Who', 'Cost', 'Done?'], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 500 }),
   T.todo(600, 60, 'Order of work', ['Plan & permits', 'Demolition', 'Wiring & plumbing', 'Finishes'], { w: 260 }), T.note(600, 280, nt('Budget', 'Total, buffer, what you will not cut.'), { w: 260, color: Y })]);
 add('craft-project', 'Craft project', 'Making & Dev', 'Materials, steps and progress photos.', () => [
@@ -405,13 +405,13 @@ add('api-map', 'System map', 'Making & Dev', 'Boxes and arrows for how parts of 
   T.line('a', 'b'), T.line('b', 'c'), T.line('b', 'd')]);
 
 // ---- Fiction
-add('novel-outline', 'Novel outline', 'Fiction', 'Six story turns, each with room for the scenes that carry it.', () => [
+add('novel-outline-2', 'Novel outline', 'Fiction', 'Six story turns, each with room for the scenes that carry it.', () => [
   T.note(60, 40, nt('Premise', 'Who wants what, and what stands in the way? One or two sentences.'), { w: 560, color: Y }),
   ...[['1 · Setup', 'Show the ordinary world and what is missing from it.'], ['2 · Disturbance', 'Something arrives that cannot be ignored.'], ['3 · Rising trouble', 'Every attempt to fix it makes things worse.'], ['4 · Midpoint turn', 'A discovery or loss that changes the goal.'], ['5 · Crisis & climax', 'The hardest choice, then the confrontation.'], ['6 · Aftermath', 'What changed, and what it cost.']]
     .map(([title, hint], i) => T.col(60 + (i % 3) * 290, 150 + Math.floor(i / 3) * 330, title, [{ type: 'note', color: [Y, B, G, P, O, R][i], content: { html: nt('Beat', hint) } }, { type: 'note', content: { html: nt('Scenes', 'List the scenes that do this job.') } }], { w: 262 }))]);
 add('beat-sheet', 'Beat sheet', 'Fiction', 'Ten beats in a row to check that your story keeps moving.', () => [
   ...['Opening image', 'Want', 'Break in', 'Fun & games', 'Midpoint', 'Pressure', 'Low point', 'Turn', 'Finale', 'Closing image'].map((b, i) => T.col(60 + (i % 5) * 230, 60 + Math.floor(i / 5) * 280, b, [{ type: 'note', color: i % 2 ? Y : B, content: { html: nt('What happens', '') } }], { w: 210 }))]);
-add('character-profile', 'Character profile', 'Fiction', 'Who they are, what they want and what they hide.', () => [
+add('character-profile-2', 'Character profile', 'Fiction', 'Who they are, what they want and what they hide.', () => [
   T.image(60, 60, 200, 1.1), T.note(280, 60, nt('Name & role', 'Age, job, where they live.'), { w: 260, color: Y }), T.note(280, 170, nt('Want / need', 'What they chase vs. what they actually need.'), { w: 260, color: B }),
   T.note(280, 290, nt('Flaw & fear', 'What gets in their own way?'), { w: 260, color: R }), T.note(60, 330, nt('Voice', 'How they talk: rhythm, favourite words, what they never say.'), { w: 200, color: P }),
   T.table(570, 60, [['Trait', 'Detail'], ['Habit', ''], ['Secret', ''], ['Strength', ''], ['Contradiction', '']], { w: 320 }), T.todo(570, 260, 'Show on the page', ['A small kindness', 'A bad decision', 'A moment of humour'], { w: 320 })]);
@@ -444,7 +444,7 @@ add('location-sheet', 'Setting sheet', 'Fiction', 'Make a place feel real with s
   T.note(60, 270, nt('Who comes here', 'And why.'), { w: 260, color: G }), T.note(340, 320, nt('Secret', 'Something hidden that matters.'), { w: 280, color: P })]);
 add('mystery-board', 'Mystery clue board', 'Fiction', 'Suspects, clues and what the reader knows when.', () => [
   ...['Suspect A', 'Suspect B', 'Suspect C'].map((s, i) => T.col(60 + i * 270, 60, s, stackNotes(['Motive', 'Alibi', 'Lie they tell'], [Y, B, P][i]), { w: 250 })),
-  T.table(60, 380, [['Clue', 'Planted in', 'Revealed in', 'Points to'], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 600 }), T.note(700, 60, nt('The truth', 'What really happened, in order.'), { w: 240, color: R })]);
+  T.table(60, 380, [['Clue', 'Planted in', 'Revealed in', 'Points to'], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 600 }), T.note(900, 60, nt('The truth', 'What really happened, in order.'), { w: 240, color: R })]);
 add('poem-workshop', 'Poem & lyric workshop', 'Fiction', 'Catch images, try lines and keep every draft.', () => [
   T.note(60, 60, nt('Seed', 'The feeling or image you do not want to lose.'), { w: 260, color: Y }), T.col(340, 60, 'Lines to try', stackNotes(['A line', 'Another line'], B), { w: 260 }), T.col(620, 60, 'Drafts', [], { w: 260 }),
   T.table(60, 200, [['Word', 'Rhymes / echoes'], ['', ''], ['', '']], { w: 260 })]);
@@ -478,7 +478,7 @@ add('idea-inbox', 'Idea inbox', 'Writing life', 'Catch sparks fast, then move th
   T.note(60, 420, nt('Rule of thumb', 'Write it down in under ten seconds. Sort it later.'), { w: 300, color: B })]);
 add('writing-goals', 'Writing goals & habits', 'Writing life', 'Set a rhythm, log your words and see the streak.', () => [
   T.note(60, 60, nt('This season', 'What finished piece do I want at the end?'), { w: 300, color: Y }), T.table(60, 190, [['Day', 'Words', 'Minutes', 'Felt like'], ['Mon', '', '', ''], ['Tue', '', '', ''], ['Wed', '', '', ''], ['Thu', '', '', ''], ['Fri', '', '', '']], { w: 420 }),
-  T.todo(400, 60, 'Habits', ['Write before checking messages', 'Stop mid-sentence', 'Weekly review'], { w: 280 }), T.note(520, 190, nt('Wins', 'Anything that went well, however small.'), { w: 260, color: G })]);
+  T.todo(520, 60, 'Habits', ['Write before checking messages', 'Stop mid-sentence', 'Weekly review'], { w: 280 }), T.note(520, 260, nt('Wins', 'Anything that went well, however small.'), { w: 280, color: G })]);
 add('revision-plan', 'Revision plan', 'Writing life', 'Revise in passes: big picture first, polish last.', () => [
   T.todo(60, 60, 'Pass 1 · Structure', ['Does the story work in one paragraph?', 'Cut or move scenes', 'Check the ending against the start'], { w: 280 }), T.todo(370, 60, 'Pass 2 · Scenes', ['Each scene has a purpose', 'Enter late, leave early', 'Sharpen conflict'], { w: 280 }),
   T.todo(680, 60, 'Pass 3 · Lines', ['Cut filler words', 'Vary sentence length', 'Read aloud'], { w: 280 }), T.todo(60, 320, 'Pass 4 · Proof', ['Spelling and names', 'Dates and facts', 'Formatting'], { w: 280 }), T.note(370, 320, nt('Reader feedback', 'Paste comments here, then sort them into passes.'), { w: 280, color: Y })]);

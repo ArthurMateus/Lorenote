@@ -188,3 +188,12 @@
 .cap-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12.5px; }
 .st-num { width: 96px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; text-align: right; }
 @media (max-width: 760px) { .wc-chip { display: none; } .fx-ed { font-size: 19px; } }
+
+/* ---------- phone header: the breadcrumb shrinks and truncates so the right-hand buttons always stay on screen */
+@media (max-width: 760px) {
+  #topbar { min-width: 0; overflow: hidden; } #topbar > .ib, #topbar > .brand, #topbar > .vsep { flex: none; }
+  #crumbs { flex: 1 1 0; min-width: 0; }
+  #crumbs > button, #crumbs > strong { flex: 0 1 auto; min-width: 0; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #crumbs > .sep { flex: none; }
+  #btn-undo, #btn-redo { min-width: 30px; padding: 0 4px; }
+}

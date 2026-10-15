@@ -38,7 +38,7 @@ export function attachSlash(ed) {
     shown = ITEMS.filter((it) => !ctx.query || (t('slash.' + it.k) + ' ' + it.label + ' ' + it.words).toLowerCase().includes(ctx.query));
     if (!shown.length) { close(); return; }
     index = Math.min(index, shown.length - 1);
-    if (!menu) { menu = document.createElement('div'); menu.className = 'slash-menu'; menu.setAttribute('role', 'listbox'); menu.addEventListener('mousedown', (e) => e.preventDefault()); document.body.append(menu); }
+    if (!menu) { menu = document.createElement('div'); menu.className = 'slash-menu'; menu.setAttribute('role', 'listbox'); menu.addEventListener('mousedown', (e) => e.preventDefault()); (ed.closest('dialog') || document.body).append(menu); }
     menu.replaceChildren(...shown.map((it, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'option'); b.className = i === index ? 'on' : '';
       const tt = document.createElement('b'); tt.textContent = t('slash.' + it.k); const s = document.createElement('span'); s.textContent = t('slash.' + it.k + '.hint'); b.append(tt, s);
