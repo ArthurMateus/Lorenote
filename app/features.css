@@ -237,3 +237,10 @@
   body.ms-printing .ms-printdoc h1 { font-size: 22pt; margin: 1.2em 0 .5em; page-break-before: always; } body.ms-printing .ms-printdoc h1:first-child { page-break-before: auto; }
   body.ms-printing .ms-printdoc h2 { font-size: 17pt; margin: 1.1em 0 .4em; } body.ms-printing .ms-printdoc h3, body.ms-printing .ms-printdoc h4 { font-size: 13pt; margin: 1em 0 .3em; } body.ms-printing .ms-printdoc p { margin: 0 0 .8em; text-align: justify; }
 }
+
+/* ---------- round 3 */
+.fx-prev { display: block; color: var(--muted); font-size: 11.5px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-snap > span { min-width: 0; }
+.tool span { color: color-mix(in srgb, var(--ink) 72%, transparent); }
+@media (min-width: 761px) { #crumbs { min-width: 120px; } .wc-chip { flex: none; } }
+.tn .tt[contenteditable="plaintext-only"] { outline: 2px solid var(--accent); border-radius: 4px; padding: 0 3px; background: var(--card); }

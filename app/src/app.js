@@ -101,6 +101,8 @@ export async function startApp({ backend = null, user = null } = {}) {
     const e = id && store.get(id); return e && e.type === 'board' && store.reachable(e) ? id : store.rootId;
   };
   view.onOpen = (id) => { location.hash = '#/' + id; };
+  { const setBoard0 = view.setBoard.bind(view);      // every way of changing board (search, links, tree, templates) keeps the URL in step
+    view.setBoard = (id) => { setBoard0(id); const want = view.boardId === store.rootId ? '' : '#/' + view.boardId; if (location.hash !== want && !(want === '' && (location.hash === '#/' || location.hash === '#'))) history.replaceState(null, '', location.pathname + location.search + want); }; }
   addEventListener('hashchange', () => { view.setBoard(idFromHash()); renderCrumbs(); });
 
   function renderCrumbs() {
@@ -161,7 +163,8 @@ export async function startApp({ backend = null, user = null } = {}) {
     const out = [];
     for (const e of Object.values(store.elements)) {
       if (e.trashed || e.id === store.rootId || !(e.type === 'board' || e.type === 'column' || e.type === 'note') || !store.reachable(e)) continue;
-      const label = (e.type === 'note' ? oneLine(e.content.html) : e.content.title || '').slice(0, 48); if (!label) continue;
+      const short = (s) => (s.length <= 34 ? s : s.slice(0, 34).replace(/\s+\S*$/, '') + '…');
+      const label = e.type === 'note' ? (e.content.alias || short(oneLine(e.content.html))) : (e.content.title || ''); if (!label) continue;
       if (q && !label.toLowerCase().includes(q)) continue;
       out.push({ id: e.id, label, hint: TYPE_LABEL[e.type] + ' · ' + boardName(boardOf(e)), rank: (e.type === 'note' ? 2 : 0) + (label.toLowerCase().startsWith(q) ? 0 : 1) });
     }

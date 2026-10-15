@@ -85,7 +85,7 @@ export function sanitizeHtml(html) {
   return out.innerHTML;
 }
 
-export const stripHtml = (html) => { const d = document.createElement('div'); d.innerHTML = sanitizeHtml(html == null ? '' : String(html)); return d.textContent || ''; };
+export const stripHtml = (html) => { const d = document.createElement('div'); d.innerHTML = sanitizeHtml(html == null ? '' : String(html)); for (const n of d.querySelectorAll('br,div,p,li,h2,h3,blockquote,pre,hr')) n.after(' '); return (d.textContent || '').replace(/\s+/g, ' ').trim(); };
 
 export function elementText(e) {
   const c = e.content;

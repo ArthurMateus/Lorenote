@@ -182,6 +182,7 @@ export function openDatabase(store, id) {
   const unsub = store.subscribe((info) => { if (info.local) return; if (dlg.open && !dlg.contains(document.activeElement)) render(); else if (dlg.open) deferred = true; });
   dlg.addEventListener('focusout', () => setTimeout(() => { if (deferred && dlg.open && !dlg.contains(document.activeElement)) { deferred = false; render(); } }));
   dlg.addEventListener('close', () => { unsub(); dlg.remove(); });
+  dlg.addEventListener('cancel', (ev) => { if (menu) { ev.preventDefault(); menu = null; render(); } });      // Esc closes an open popover first
   dlg.addEventListener('click', (ev) => { if (ev.target === dlg) dlg.close(); else if (menu && !ev.target.closest('.db-pop,[data-pop]')) { menu = null; render(); } });
 
   const input = (value, onCommit, attrs = {}) => {

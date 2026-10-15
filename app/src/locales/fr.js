@@ -583,5 +583,10 @@ export default {
     "wr.stat": {"one": "{n} mot · {m} min de lecture", "other": "{n} mots · {m} min de lecture"},
     "ms.total": {"one": "{n} mot · {m} min de lecture", "other": "{n} mots · {m} min de lecture"},
     "db.chartSummary": {"one": "{n} ligne par {name}", "other": "{n} lignes par {name}"},
+    "wr.alias": "Nom…",
+    "wr.aliasTip": "Donnez à cette note un nom court, utilisé pour les liens @ et le manuscrit",
+    "wr.aliasPrompt": "Nom court pour cette note (laissez vide pour le retirer) :",
+    "ms.loose": "Inclure les notes libres",
+    "ms.looseTip": "Les notes posées sur le tableau hors de tout chapitre (personnages, lieux, idées) sont exclues sauf si vous cochez ceci",
   },
 };

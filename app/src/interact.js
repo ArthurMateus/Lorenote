@@ -33,8 +33,13 @@ export function setupInteractions(view, toast) {
   // ------------------------------------------------------------------ creation
   function nextFree() {
     const r = vp.getBoundingClientRect(); const c = view.toWorld(r.left + r.width / 2, r.top + r.height / 2);
-    const n = store.children(view.boardId, 'canvas').length % 6;
-    return { x: c.x - 110 + n * 24, y: c.y - 60 + n * 24 };
+    const boxes = store.children(view.boardId, 'canvas').filter((e) => e.type !== 'line').map((e) => { const w = view.worldRect(e.id); return w || { x: e.x, y: e.y, w: e.w || 240, h: 120 }; });
+    const free = (x, y) => !boxes.some((b) => x < b.x + b.w + 16 && x + 250 > b.x && y < b.y + b.h + 16 && y + 150 > b.y);
+    for (let ring = 0; ring <= 14; ring++) for (let a = 0; a < Math.max(1, ring * 8); a++) {      // spiral outwards from the middle of the screen until there is room
+      const ang = (a / Math.max(1, ring * 8)) * Math.PI * 2; const x = c.x - 110 + Math.cos(ang) * ring * 90, y = c.y - 60 + Math.sin(ang) * ring * 70;
+      if (free(x, y)) return { x, y };
+    }
+    return { x: c.x - 110, y: c.y - 60 };
   }
 
   function placeAt(type, hit) {

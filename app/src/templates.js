@@ -170,7 +170,7 @@ const brief = (sections, extras = []) => [
 ];
 
 // ------------------------------------------------------------------ built-in library
-export const CATEGORIES = ['Fiction', 'Nonfiction', 'Writing life', 'Writing', 'Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Product & UX', 'Marketing', 'Education', 'Personal', 'Design', 'Business', 'Media', 'Making & Dev'];
+export const CATEGORIES = ['Fiction', 'Nonfiction', 'Writing life', 'Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Product & UX', 'Marketing', 'Education', 'Personal', 'Design', 'Business', 'Media', 'Making & Dev'];
 
 const L = [];
 const add = (id, name, category, description, nodes) => {
@@ -275,13 +275,13 @@ add('inspiration-library', 'Inspiration library', 'Brainstorming', 'A shelf of t
   T.note(60, 200, nt('How to use', 'Drop anything that catches your eye into the right board.'), { w: 320, color: Y })]);
 
 // ---- Writing
-add('novel-outline', 'Novel outline', 'Writing', 'Three acts, a cast and a world.', () => [
+add('novel-outline', 'Novel outline', 'Writing life', 'Three acts, a cast and a world.', () => [
   ...columns(['Act I · Setup', 'Act II · Confrontation', 'Act III · Resolution'], [stackNotes(['Opening image', 'Inciting incident'], Y), stackNotes(['Midpoint', 'All is lost'], B), stackNotes(['Climax', 'Closing image'], G)]),
   T.board(900, 60, 'Characters', '👥', '#bb9af7'), T.board(1020, 60, 'World', '🗺️', '#7aa2f7'), T.board(900, 190, 'Research', '📚', '#e0af68')]);
-add('character-profile', 'Character profile', 'Writing', 'Facts, wants and fears in one place.', () => [
+add('character-profile', 'Character profile', 'Writing life', 'Facts, wants and fears in one place.', () => [
   T.image(60, 60, 200, 1.1), T.table(290, 60, [['Name', ''], ['Age', ''], ['Occupation', ''], ['Home', '']], { w: 320 }),
   T.note(290, 220, nt('Wants', 'What drives them?'), { w: 150, color: G }), T.note(460, 220, nt('Fears', 'What do they avoid?'), { w: 150, color: R }), T.note(60, 330, nt('Arc', 'Who are they at the start, and at the end?'), { w: 550, color: Y })]);
-add('story-beats', 'Story beats', 'Writing', 'Plot points in four columns.', () => columns(['Setup', 'Conflict', 'Climax', 'Resolution'], [stackNotes(['Who and where']), stackNotes(['What goes wrong']), stackNotes(['The turn']), stackNotes(['How it ends'])]));
+add('story-beats', 'Story beats', 'Writing life', 'Plot points in four columns.', () => columns(['Setup', 'Conflict', 'Climax', 'Resolution'], [stackNotes(['Who and where']), stackNotes(['What goes wrong']), stackNotes(['The turn']), stackNotes(['How it ends'])]));
 
 // ---- Product & UX
 add('product-roadmap', 'Product roadmap', 'Product & UX', 'What is happening now, next and later.', () => columns(['Now', 'Next', 'Later'], [stackNotes(['Fix onboarding'], G), stackNotes(['Search'], B), stackNotes(['Integrations'], P)], { w: 300, gap: 330 }));
@@ -329,7 +329,7 @@ add('website-design', 'Website design board', 'Design', 'Sitemap, inspiration an
   T.board(60, 60, 'Home', '🏠', '#7aa2f7'), T.board(180, 60, 'About', '🙂', '#9ece6a'), T.board(300, 60, 'Work', '🖼️', '#e0af68'), T.board(420, 60, 'Contact', '✉️', '#bb9af7'),
   T.image(60, 200, 200, 0.62), T.image(280, 200, 200, 0.62), T.image(500, 200, 200, 0.62), T.note(60, 360, nt('Look & feel', 'Type, colour, spacing, motion.'), { w: 260, color: Y }),
   T.todo(340, 360, 'Build', ['Wireframes', 'Visual design', 'Content in place', 'Test on phone'], { w: 260 })]);
-add('ux-research', 'UX research plan', 'Design', 'Questions, participants and what you learned.', () => [
+add('ux-research', 'Research study plan', 'Design', 'Questions, participants and what you learned.', () => [
   T.note(60, 60, nt('Research questions', 'What do we need to find out?'), { w: 280, color: Y }), T.table(60, 210, [['Participant', 'Date', 'Notes'], ['', '', ''], ['', '', ''], ['', '', '']], { w: 420 }),
   ...columns(['Observations', 'Patterns', 'Opportunities'], [stackNotes(['One thing you saw'], Y), [], []], { x0: 520, y: 60, gap: 250, w: 220 })]);
 add('user-journey', 'User journey', 'Design', 'Stages, feelings and the chance to improve each step.', () => [

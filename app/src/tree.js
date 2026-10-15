@@ -29,6 +29,9 @@ export function setupTree(view, store) {
     const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = boardName(board);
     const tc = document.createElement('span'); tc.className = 'tc'; tc.textContent = cardCount(board.id) || '';
     const star = document.createElement('button'); star.type = 'button'; star.className = 'tstar' + (isFav(board.id) ? ' on' : ''); star.textContent = isFav(board.id) ? '★' : '☆'; star.title = t('side.fav'); star.setAttribute('aria-label', t('side.fav')); star.onclick = (e) => { e.stopPropagation(); toggleFav(board.id); };
+    tt.addEventListener('dblclick', (e) => { e.stopPropagation(); tt.contentEditable = 'plaintext-only'; tt.focus(); getSelection().selectAllChildren(tt); });
+    const done = () => { tt.contentEditable = 'false'; const v = tt.textContent.trim().slice(0, 80) || t('common.untitled'); const cur = store.live(board.id); if (cur && cur.content.title !== v && board.id !== store.rootId) store.commit([{ id: cur.id, after: { ...cur, content: { ...cur.content, title: v } } }], { label: 'Rename board' }); else render(); };
+    tt.addEventListener('blur', () => { if (tt.isContentEditable) done(); }); tt.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); tt.blur(); } if (e.key === 'Escape') { tt.textContent = board.content.title; tt.blur(); } });
     el.append(tw, ti, tt, tc, star); el.onclick = () => { view.onOpen?.(board.id); if (matchMedia('(max-width: 760px)').matches) hide(); };
     const frag = [el];
     if (kids.length && isOpen) for (const k of kids) frag.push(...row(k, depth + 1, currentPath));

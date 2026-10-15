@@ -583,5 +583,10 @@ export default {
     "wr.stat": {"one": "{n} palabra · {m} min de lectura", "other": "{n} palabras · {m} min de lectura"},
     "ms.total": {"one": "{n} palabra · {m} min de lectura", "other": "{n} palabras · {m} min de lectura"},
     "db.chartSummary": {"one": "{n} fila por {name}", "other": "{n} filas por {name}"},
+    "wr.alias": "Nombre…",
+    "wr.aliasTip": "Dale a esta nota un nombre corto, usado en los enlaces @ y en el manuscrito",
+    "wr.aliasPrompt": "Nombre corto para esta nota (déjalo vacío para quitarlo):",
+    "ms.loose": "Incluir notas sueltas",
+    "ms.looseTip": "Las notas sueltas en el tablero, fuera de cualquier capítulo (personajes, lugares, ideas), quedan fuera salvo que marques esto",
   },
 };

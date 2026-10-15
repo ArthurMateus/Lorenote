@@ -60,7 +60,7 @@ function dbMd(c) {
 /** reading order: rows of cards top to bottom, left to right inside a row */
 const readingOrder = (els) => [...els].sort((a, b) => (Math.round(a.y / 120) - Math.round(b.y / 120)) || (a.x - b.x));
 
-export function compileMarkdown(store, boardId, depth = 1, seen = new Set()) {
+export function compileMarkdown(store, boardId, depth = 1, seen = new Set(), opts = {}) {
   const board = store.get(boardId); if (!board || seen.has(boardId)) return '';
   seen.add(boardId);
   const name = board.parentId == null && (!board.content.title || board.content.title === 'Home') ? t('common.home') : board.content.title || t('common.untitled');
@@ -74,12 +74,13 @@ export function compileMarkdown(store, boardId, depth = 1, seen = new Set()) {
       case 'table': return (e.content.rows || []).map((r, i, all) => `| ${r.map(cell).join(' | ')} |` + (i === 0 ? `\n| ${r.map(() => '---').join(' | ')} |` : '')).join('\n');
       case 'database': return `**${e.content.title || ''}**\n\n${dbMd(e.content)}`;
       case 'link': return e.content.url ? `[${e.content.title || e.content.url}](${e.content.url})` : null;
-      case 'board': return compileMarkdown(store, e.id, d + 1, seen);
+      case 'board': return compileMarkdown(store, e.id, d + 1, seen, opts);
       default: return null;
     }
   };
   const top = readingOrder(store.children(boardId, 'canvas').filter((e) => e.type !== 'line' && !e.trashed));
-  for (const e of top) { const s = emit(e, depth); if (s) parts.push(s); }
+  const hasStructure = top.some((e) => e.type === 'column' || e.type === 'board');
+  for (const e of top) { if (opts.skipLoose && hasStructure && (e.type === 'note' || e.type === 'table' || e.type === 'link' || e.type === 'database')) continue; const s = emit(e, depth); if (s) parts.push(s); }
   return parts.join('\n\n') + '\n';
 }
 
@@ -130,7 +131,7 @@ export function setupWriter(ctx) {
     const showHistory = () => {
       if (pop) { pop.remove(); pop = null; return; }
       pop = h('div', { class: 'fx-pop' }, h('div', { class: 'muted', style: 'font-size:12px;padding:4px 8px' }, t('wr.historyHint')),
-        ...(snaps().length ? snaps().slice().reverse().map((s) => h('div', { class: 'fx-snap' }, h('span', {}, new Date(s.t).toLocaleString(getLang(), { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + t('wr.words', { n: s.w })),
+        ...(snaps().length ? snaps().slice().reverse().map((s) => h('div', { class: 'fx-snap' }, h('span', { title: htmlText(s.html).trim().slice(0, 300) }, new Date(s.t).toLocaleString(getLang(), { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + t('wr.words', { n: s.w }), h('small', { class: 'fx-prev' }, htmlText(s.html).replace(/\s+/g, ' ').trim().slice(0, 90) + '…')),
           h('button', { type: 'button', class: 'tb', onclick: () => { save(); pushSnap(sanitizeHtml(ed.innerHTML)); ed.innerHTML = sanitizeHtml(s.html); save(); count(); pop.remove(); pop = null; } }, t('wr.restore')))) : [h('div', { class: 'muted', style: 'padding:8px' }, t('wr.noSnaps'))]));
       dlg.querySelector('.fx-bar').after(pop);
     };
@@ -143,6 +144,7 @@ export function setupWriter(ctx) {
     const sizeBtn = (d, label) => h('button', { type: 'button', class: 'ib', title: t('wr.size'), 'aria-label': t('wr.size'), onclick: () => { fx.size = Math.max(15, Math.min(34, fx.size + d)); ed.style.fontSize = fx.size + 'px'; saveFx(); } }, label);
     const twBtn = h('button', { type: 'button', class: 'tb' + (fx.tw ? ' on' : ''), 'aria-pressed': String(fx.tw), title: t('wr.typewriterTip'), onclick: () => { fx.tw = !fx.tw; twBtn.classList.toggle('on', fx.tw); twBtn.setAttribute('aria-pressed', String(fx.tw)); saveFx(); } }, t('wr.typewriter'));
     const wrap = h('div', { class: 'fx-wrap' }, ed);
+    dlg.addEventListener('mousedown', (ev) => { if (ev.target.closest('.fx-bar button:not(.primary), .fx-pop button')) ev.preventDefault(); });      // toolbar clicks must not steal the cursor from the text
     const centre = () => { if (!fx.tw) return; const s = getSelection(); if (!s.rangeCount) return; const r = s.getRangeAt(0).getBoundingClientRect(); if (!r.height && !r.top) return; const wr = wrap.getBoundingClientRect(); wrap.scrollTop += r.top - (wr.top + wr.height / 2); };
     ed.addEventListener('input', centre); ed.addEventListener('keyup', (ev) => { if (ev.key.startsWith('Arrow') || ev.key === 'Enter') centre(); });
     dlg.append(h('header', { class: 'fx-bar' }, h('span', { class: 'fx-hint' }, t('wr.esc')), stat, sizeBtn(-1, 'A−'), sizeBtn(1, 'A+'), twBtn,
@@ -233,7 +235,7 @@ export function setupWriter(ctx) {
     const total = totalWords(store);
     const done = readToday(); const pct = Math.min(100, Math.round((done / goal) * 100));
     chip.hidden = false; chip.style.setProperty('--p', pct + '%'); chip.classList.toggle('hit', done >= goal);
-    chip.textContent = t('wr.goalChip', { done, goal }); chip.title = t('wr.goalTip', { n: total }) + (streak(goal) ? ' ' + t('wr.streak', { n: streak(goal) }) : '');
+    chip.textContent = matchMedia('(max-width: 1100px)').matches ? `${done}/${goal}` : t('wr.goalChip', { done, goal }); chip.title = t('wr.goalTip', { n: total }) + (streak(goal) ? ' ' + t('wr.streak', { n: streak(goal) }) : '');
   }
   const schedule = () => { clearTimeout(tick); tick = setTimeout(paintChip, 900); };
   store.subscribe((i) => {

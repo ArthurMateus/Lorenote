@@ -13,13 +13,17 @@ const ITEMS = [
   { k: 'b', label: 'Bold text', hint: 'Make the line bold', words: 'bold strong', run: () => { document.execCommand('selectAll'); document.execCommand('bold'); collapseEnd(); } },
   { k: 'date', label: "Today's date", hint: 'Insert the current date', words: 'date today', run: () => document.execCommand('insertText', false, new Date().toLocaleDateString(undefined, { dateStyle: 'long' })) },
   { k: 'scene', label: 'Scene break', hint: 'A * * * line between scenes', words: 'scene break section divider asterisks', run: () => { document.execCommand('insertParagraph'); document.execCommand('insertText', false, '* * *'); document.execCommand('insertParagraph'); } },
-  { k: 'chapter', label: 'Chapter heading', hint: 'A big heading for a new chapter', words: 'chapter heading title part', run: () => { document.execCommand('insertText', false, t('slash.chapterWord') + ' '); block('h2'); } },
+  { k: 'chapter', label: 'Chapter heading', hint: 'A big heading for a new chapter', words: 'chapter heading title part', run: () => { document.execCommand('insertHTML', false, `<h2>${t('slash.chapterWord')}</h2>`); getSelection().modify?.('extend', 'backward', 'line'); } },      // the placeholder is selected, so typing replaces it
   { k: 'tk', label: 'To come (TK)', hint: 'Mark a gap to fill in later', words: 'tk todo placeholder gap later', run: () => document.execCommand('insertText', false, '[TK] ') },
   { k: 'dialogue', label: 'Dialogue line', hint: 'Start a line of speech', words: 'dialogue speech quote line', run: () => document.execCommand('insertText', false, '“') },
   { k: 'text', label: 'Plain text', hint: 'Back to a normal paragraph', words: 'text paragraph plain normal', run: () => block('div') },
 ];
 
-function block(tag) { document.execCommand('formatBlock', false, tag); }
+function block(tag) {
+  document.execCommand('formatBlock', false, tag);
+  const sel = getSelection(); const el = sel.anchorNode && (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode);
+  if (!el?.closest?.(tag) && tag !== 'div') document.execCommand('insertHTML', false, `<${tag}><br></${tag}>`);      // an empty note has no block to convert yet
+}
 function collapseEnd() { const s = getSelection(); if (s.rangeCount) s.collapseToEnd(); }
 
 /** the app supplies the cards a mention can point at: (query) => [{ id, label, hint }] */
@@ -61,14 +65,18 @@ export function attachSlash(ed) {
   };
   const choose = (it) => {
     const c = triggerContext(ed) || ctx; if (!c) return close();
-    const r = document.createRange(); r.setStart(c.node, c.start); r.setEnd(c.node, c.end); r.deleteContents();
-    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    const r = document.createRange(); r.setStart(c.node, c.start); r.setEnd(c.node, c.end);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('delete');      // the editor's own delete keeps the caret in the right block even when the line becomes empty
     close();
     if (it.mention) document.execCommand('insertHTML', false, `<a href="#ref-${esc(it.id)}">${esc(it.label)}</a>&nbsp;`); else it.run();
     ed.dispatchEvent(new Event('input'));
   };
   ed.addEventListener('input', () => { ctx = triggerContext(ed); if (!ctx) { close(); return; } index = 0; draw(); });
   ed.addEventListener('keydown', (ev) => {
+    if (!menu && ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) {      // after a heading the next line is a normal paragraph, never another heading
+      const sel = getSelection(); const blk = sel.anchorNode && (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode).closest?.('h2,h3');
+      if (blk && ed.contains(blk) && sel.isCollapsed) { const r = sel.getRangeAt(0).cloneRange(); r.selectNodeContents(blk); r.setStart(sel.anchorNode, sel.anchorOffset); if (!r.toString().length) { ev.preventDefault(); const d = document.createElement('div'); d.innerHTML = '<br>'; blk.after(d); const nr = document.createRange(); nr.setStart(d, 0); nr.collapse(true); sel.removeAllRanges(); sel.addRange(nr); ed.dispatchEvent(new Event('input')); return; } }
+    }
     if (!menu) return;
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); ev.stopPropagation(); index = (index + (ev.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length; draw(); }
     else if (ev.key === 'Enter' || ev.key === 'Tab') { ev.preventDefault(); ev.stopPropagation(); choose(shown[index]); }

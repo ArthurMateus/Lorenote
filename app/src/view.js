@@ -111,6 +111,7 @@ export class View {
       for (const e of store.children(parentId, section)) {
         if (e.type === 'line') continue;
         const rec = this.ensure(e); if (!rec) continue; seen.add(e.id);
+        if (e.type === 'board') rec.count?.();      // counts follow what is inside, e.g. after an idea is captured
         if (host.children[i] !== rec.node) host.insertBefore(rec.node, host.children[i] || null);
         i++;
         if (isContainer(e.type) && rec.body) { place(e.id, rec.body, 'stack'); rec.count?.(); }
@@ -239,7 +240,8 @@ export class View {
       bar.classList.add('docked'); bar.style.left = '6px'; bar.style.top = Math.max(4, vr.height - bar.offsetHeight - 8) + 'px';
     } else {
       bar.classList.remove('docked');
-      bar.style.left = Math.max(4, Math.min(x, vr.width - bw - 4)) + 'px';
+      const rail = innerWidth > 760 ? Math.max(4, this.dom.toolbar.getBoundingClientRect().right - vr.left + 8) : 4;
+      bar.style.left = Math.max(rail, Math.min(x, vr.width - bw - 4)) + 'px';
       bar.style.top = Math.max(4, y) + 'px';
     }
   }
@@ -282,6 +284,7 @@ export class View {
       }
       const STAT = ['', 'draft', 'revise', 'done']; const cur = one.content.status || '';
       out.push(btn(t('wr.write'), t('wr.writeTip'), () => this.onFocusNote?.(one.id), 'primary'),
+        btn(one.content.alias ? '🏷 ' + one.content.alias.slice(0, 14) : t('wr.alias'), t('wr.aliasTip'), () => { const v = prompt(t('wr.aliasPrompt'), one.content.alias || ''); if (v != null) edit((e) => ({ ...e, content: { ...e.content, alias: v.trim().slice(0, 60) || undefined } }), 'Note name'); }),
         btn(t('st.' + (cur || 'none')), t('st.tip'), () => edit((e) => ({ ...e, content: { ...e.content, status: STAT[(STAT.indexOf(cur) + 1) % STAT.length] } }), 'Note status')),
         btn(one.content.collapsed ? t('wr.expand') : t('wr.collapse'), t('wr.collapseTip'), () => edit((e) => ({ ...e, content: { ...e.content, collapsed: !e.content.collapsed } }), 'Collapse note')), sep());
     }
@@ -360,7 +363,9 @@ const BUILDERS = {
     ed.addEventListener('drop', (ev) => { if (!ed.isContentEditable) return; ev.preventDefault(); const tx = ev.dataTransfer?.getData('text/plain'); if (tx) document.execCommand('insertText', false, tx); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
     attachSlash(ed);
-    ed.addEventListener('click', (ev) => { const a = ev.target.closest?.('a[href^="#ref-"]'); if (a && (!ed.isContentEditable || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); ev.stopPropagation(); view.onRef?.(a.getAttribute('href').slice(5)); } });
+    let down = null; ed.addEventListener('pointerdown', (ev) => { down = [ev.clientX, ev.clientY]; });
+    ed.addEventListener('pointerup', (ev) => { const a = ev.target.closest?.('a[href^="#ref-"]'); if (a && down && Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) < 5 && (!ed.isContentEditable || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); view.onRef?.(a.getAttribute('href').slice(5)); } down = null; });
+    ed.addEventListener('click', (ev) => { if (ev.target.closest?.('a[href^="#ref-"]')) ev.preventDefault(); });
     const wc = h('div', { class: 'note-wc', 'aria-hidden': 'true' });
     const paintWc = (html) => { const n = view.store.prefs.wordCounts === false ? 0 : noteWords(html); wc.textContent = n > 0 ? t('wr.words', { n }) : ''; wc.hidden = !n; };
     ed.addEventListener('input', () => paintWc(ed.innerHTML));

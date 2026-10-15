@@ -601,5 +601,10 @@ export default {
     "wr.stat": {"one": "{n} word · {m} min read", "other": "{n} words · {m} min read"},
     "ms.total": {"one": "{n} word · {m} min read", "other": "{n} words · {m} min read"},
     "db.chartSummary": {"one": "{n} row by {name}", "other": "{n} rows by {name}"},
+    "wr.alias": "Name…",
+    "wr.aliasTip": "Give this note a short name, used for @ links and the manuscript",
+    "wr.aliasPrompt": "Short name for this note (leave empty to remove):",
+    "ms.loose": "Include loose notes",
+    "ms.looseTip": "Notes lying on the board outside any chapter (characters, places, ideas) are left out unless you tick this",
   },
 };

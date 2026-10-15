@@ -17,9 +17,9 @@ const firstLine = (html) => { const d = document.createElement('div'); d.innerHT
 
 export function setupManuscript(ctx) {
   const { store, view } = ctx;
-  let dlg = null, boardId = null, plain = false;
+  let dlg = null, boardId = null, plain = false, loose = false;
   const STAT = ['', 'draft', 'revise', 'done'];
-  const compile = () => { const md = compileMarkdown(store, boardId); return plain ? md.replace(/\*\*(.+?)\*\*/g, '$1').replace(/(^|[^*])\*(?!\*)(.+?)\*/g, '$1$2').replace(/^#{1,6} /gm, '') : md; };
+  const compile = () => { const md = compileMarkdown(store, boardId, 1, new Set(), { skipLoose: !loose }); return plain ? md.replace(/\*\*(.+?)\*\*/g, '$1').replace(/(^|[^*])\*(?!\*)(.+?)\*/g, '$1$2').replace(/^#{1,6} /gm, '') : md; };
 
   const patch = (id, content, label) => { const cur = store.live(id); if (cur) store.commit([{ id, after: { ...cur, content: { ...cur.content, ...content }, modified: Date.now() } }], { label }); };
   const sceneWords = (e) => (e.type === 'note' ? noteWords(e.content.html) : e.type === 'board' ? partWords(e.id) : 0);
@@ -48,7 +48,8 @@ export function setupManuscript(ctx) {
   function render() {
     if (!dlg) return;
     const board = store.live(boardId) || store.get(boardId); if (!board) return dlg.close();
-    const st = structure(boardId); const total = st.reduce((n, s) => n + s.words, 0);
+    const all = structure(boardId); const hasStructure = all.some((s) => s.kind !== 'loose');
+    const st = all.filter((s) => loose || !hasStructure || s.kind !== 'loose'); const total = st.reduce((n, s) => n + s.words, 0);
     const goal = Number(board.content.target) || 0; const pct = goal ? Math.min(100, Math.round((total / goal) * 100)) : 0;
     const left = dlg.querySelector('.ms-list'), right = dlg.querySelector('.ms-prev'), top = dlg.querySelector('.ms-top');
     const name = board.parentId == null ? t('common.home') : board.content.title || t('common.untitled');
@@ -59,7 +60,7 @@ export function setupManuscript(ctx) {
 
     const chapters = st.filter((s) => s.kind === 'chapter');
     left.replaceChildren(...(st.length ? st.map((s) => {
-      const e = s.e; const title = e.content.title || firstLine(e.content.html) || t('common.untitled');
+      const e = s.e; const title = e.content.title || e.content.alias || firstLine(e.content.html) || t('common.untitled');
       const idx = chapters.indexOf(s);
       const card = h('div', { class: 'ms-ch ms-' + s.kind });
       const tgt = s.kind === 'chapter' ? Number(e.content.target) || 0 : 0;
@@ -75,7 +76,7 @@ export function setupManuscript(ctx) {
       card.append(head);
       if (tgt) card.append(h('div', { class: 'ms-bar' + (s.words >= tgt ? ' hit' : '') }, h('span', { style: `width:${Math.min(100, Math.round((s.words / tgt) * 100))}%` })));
       if (s.kind === 'chapter') card.append(h('ol', { class: 'ms-scenes' }, ...s.scenes.map((k) => h('li', {},
-        h('button', { type: 'button', class: 'ms-scene', onclick: () => reveal(k) }, k.type === 'board' ? '📁 ' + (k.content.title || '') : firstLine(k.content.html) || t('ms.emptyScene')),
+        h('button', { type: 'button', class: 'ms-scene', onclick: () => reveal(k) }, k.type === 'board' ? '📁 ' + (k.content.title || '') : k.content.alias || firstLine(k.content.html) || t('ms.emptyScene')),
         k.type === 'note' ? h('button', { type: 'button', class: 'ms-stat', 'data-s': k.content.status || '', title: t('st.tip'), onclick: () => patch(k.id, { status: STAT[(STAT.indexOf(k.content.status || '') + 1) % STAT.length] }, 'Note status') }, t('st.' + (k.content.status || 'none'))) : null,
         h('span', { class: 'ms-w' }, String(sceneWords(k))),
         h('button', { type: 'button', class: 'ib', 'aria-label': t('ms.up'), onclick: () => moveScene(e, k, -1) }, '↑'), h('button', { type: 'button', class: 'ib', 'aria-label': t('ms.down'), onclick: () => moveScene(e, k, 1) }, '↓')))));
@@ -95,6 +96,7 @@ export function setupManuscript(ctx) {
     dlg = h('dialog', { class: 'ms-dlg', 'aria-label': t('ms.heading') },
       h('header', { class: 'ms-head' }, h('div', { class: 'ms-top' }), h('div', { class: 'ms-acts' },
         h('label', { class: 'ms-opt' }, h('input', { type: 'checkbox', onchange: (e) => { plain = e.target.checked; render(); } }), t('ms.plain')),
+        h('label', { class: 'ms-opt', title: t('ms.looseTip') }, h('input', { type: 'checkbox', onchange: (e) => { loose = e.target.checked; render(); } }), t('ms.loose')),
         h('button', { type: 'button', class: 'tb', onclick: () => ctx.writer.copyText(boardId) }, t('wr.copyText')), h('button', { type: 'button', class: 'tb', onclick: () => ctx.writer.downloadMd(boardId) }, t('wr.exportMd')),
         h('button', { type: 'button', class: 'tb', onclick: printIt }, t('ms.print')),
         h('button', { type: 'button', class: 'ib', 'aria-label': t('common.close'), onclick: () => dlg.close() }, '×'))),
