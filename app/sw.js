@@ -1,7 +1,7 @@
 // Lorenote service worker: offline app shell.
 // Same-origin files use network-first (always fresh when online, cached copy when offline).
 // The Supabase client is vendored under /vendor, so there is no third-party script. API calls are never touched.
-const SHELL_CACHE = 'lorenote-shell-v10';
+const SHELL_CACHE = 'lorenote-shell-v11';
 const CDN_CACHE = 'lorenote-cdn-v1';
 const SHELL = ['./', 'index.html', 'styles.css', 'features.css', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png',

@@ -155,14 +155,20 @@ export class Store {
   undo() {
     const e = this.undoStack.pop(); if (!e) return false;
     this._apply(e.patches, 'before'); this.redoStack.push(e);
-    this.afterChange(e.patches.map((p) => ({ id: p.id, before: p.after, after: p.before })), true);
+    this.afterChange(this.stamp(e.patches.map((p) => ({ id: p.id, before: p.after, after: p.before }))), true);
     return true;
   }
   redo() {
     const e = this.redoStack.pop(); if (!e) return false;
     this._apply(e.patches, 'after'); this.undoStack.push(e);
-    this.afterChange(e.patches, true);
+    this.afterChange(this.stamp(e.patches.map((p) => ({ ...p }))), true);
     return true;
+  }
+  /** restored states must look newer than the edit they replace, or other tabs/devices (last-writer-wins) would ignore them */
+  stamp(patches) {
+    const now = Date.now();
+    for (const p of patches) if (p.after && this.elements[p.id]) { this.elements[p.id] = { ...this.elements[p.id], modified: now }; p.after = this.elements[p.id]; }
+    return patches;
   }
 
   afterChange(patches, local) {

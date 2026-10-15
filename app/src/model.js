@@ -76,6 +76,7 @@ export function sanitizeHtml(html) {
       if (tag === 'a') {
         const href = n.getAttribute('href') || '';
         if (/^https?:\/\//i.test(href.trim())) { el.setAttribute('href', href.trim()); el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
+        else if (/^#ref-[A-Za-z0-9]{6,20}$/.test(href.trim())) el.setAttribute('href', href.trim());      // a mention of another card
       }
       copy(n, el, depth + 1); dst.append(el);
     }

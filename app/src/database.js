@@ -162,7 +162,7 @@ export function openDatabase(store, id) {
   const set = (fn, label, merge) => {
     const cur = store.live(id); if (!cur) return;
     const c = normalize(structuredClone(cur.content));
-    if (c.locked && !/view|lock|calendar/i.test(label || '')) return;      // a locked database can still be browsed (views, filters) but not edited
+    if (c.locked && !/view|lock|calendar|chart/i.test(label || '')) return;      // a locked database can still be browsed (views, filters) but not edited
     store.commit([{ id, after: { ...cur, content: fn(c) || c } }], { label, merge });
     if (down) later = true; else render();      // a re-render between mouse-down and mouse-up would swallow the click
   };
@@ -253,7 +253,7 @@ export function openDatabase(store, id) {
       h('td', { class: 'db-td-x' }, h('button', { type: 'button', class: 'ib', 'aria-label': t('db.delRow'), title: t('db.delRow'), disabled: c.locked, onclick: () => delRow(r.id) }, '×'))))));
     return h('div', { class: 'db-scroll' }, tbl, c.locked ? null : h('button', { type: 'button', class: 'tb db-add', onclick: () => addRow() }, t('db.newRow')));
   }
-  const chips = (c, v, r, skip) => c.props.filter((p) => p.id !== skip && !v.hidden.includes(p.id)).map((p) => { const tx = cellText(p, r.cells[p.id]); if (!tx) return null; const o = optOf(p, r.cells[p.id]); return h('span', { class: 'db-chip', style: `--c:${safeColor(o?.color, '#9aa5b8')}`, title: p.name }, tx); });
+  const chips = (c, v, r, skip) => c.props.filter((p) => p.id !== skip && !v.hidden.includes(p.id)).map((p) => { const tx = cellText(p, r.cells[p.id]); if (!tx) return null; const o = optOf(p, r.cells[p.id]); return h('span', { class: 'db-chip', style: `--c:${safeColor(o?.color, '#9aa5b8')}`, title: p.name }, p.type === 'number' || p.type === 'date' || p.type === 'text' || p.type === 'url' ? `${p.name}: ${tx}` : tx); });
   const groupProp = (c, v) => c.props.find((p) => p.id === v.groupBy && (p.type === 'select' || p.type === 'status')) || c.props.find((p) => p.type === 'status' || p.type === 'select');
 
   function boardView(c, v) {
@@ -305,9 +305,11 @@ export function openDatabase(store, id) {
   function chartView(c, v) {
     const gp = groupProp(c, v);
     if (!gp) return h('div', { class: 'db-empty' }, t('db.needChart'));
-    const rows = rowsOf(c, v); const groups = [...gp.options.map((o) => ({ label: o.label, color: o.color, n: rows.filter((r) => r.cells[gp.id] === o.id).length })), { label: t('db.noValue'), color: '#9aa5b8', none: true, n: rows.filter((r) => !r.cells[gp.id]).length }].filter((g) => g.n || !g.none);
+    const rows = rowsOf(c, v); const sp = c.props.find((p) => p.id === v.sumProp && p.type === 'number');
+    const val = (list) => (sp ? list.reduce((n, r) => n + (Number(r.cells[sp.id]) || 0), 0) : list.length);
+    const groups = [...gp.options.map((o) => { const l = rows.filter((r) => r.cells[gp.id] === o.id); return { label: o.label, color: o.color, n: val(l) }; }), { label: t('db.noValue'), color: '#9aa5b8', none: true, n: val(rows.filter((r) => !r.cells[gp.id])) }].filter((g) => g.n || !g.none);
     const max = Math.max(1, ...groups.map((g) => g.n));
-    return h('div', { class: 'db-chart' }, h('div', { class: 'muted' }, t('db.chartSummary', { n: rows.length, name: gp.name })), ...groups.map((g) => h('div', { class: 'db-bar-row' }, h('span', { class: 'db-bar-l' }, g.label), h('span', { class: 'db-bar-track' }, h('span', { class: 'db-bar-fill', style: `width:${(g.n / max) * 100}%;background:${safeColor(g.color, '#9aa5b8')}` })), h('span', { class: 'db-bar-n' }, String(g.n)))));
+    return h('div', { class: 'db-chart' }, h('div', { class: 'muted' }, sp ? t('db.chartSum', { name: sp.name, by: gp.name }) : t('db.chartSummary', { n: rows.length, name: gp.name })), ...groups.map((g) => h('div', { class: 'db-bar-row' }, h('span', { class: 'db-bar-l' }, g.label), h('span', { class: 'db-bar-track' }, h('span', { class: 'db-bar-fill', style: `width:${(g.n / max) * 100}%;background:${safeColor(g.color, '#9aa5b8')}` })), h('span', { class: 'db-bar-n' }, String(g.n)))));
   }
 
   // ---- chrome
@@ -371,6 +373,7 @@ export function openDatabase(store, id) {
     const out = [f, btn(t('db.filter'), 'filter', v.filters.length), sel([['', t('db.sortNone')], ...c.props.map((p) => [p.id, t('db.sortBy', { name: p.name })]), ['__title', t('db.sortBy', { name: t('db.name') })]], v.sort?.prop || '', (x) => setView((vv) => { vv.sort = x ? { prop: x, dir: vv.sort?.dir || 'asc' } : null; }, 'Sort view'), { class: 'db-sort', 'aria-label': 'Sort by' }),
       h('button', { type: 'button', class: 'tb', title: t('db.reverse'), disabled: !v.sort, onclick: () => setView((vv) => { if (vv.sort) vv.sort.dir = vv.sort.dir === 'asc' ? 'desc' : 'asc'; }, 'Sort view') }, v.sort?.dir === 'desc' ? '↓' : '↑'), btn(t('db.props'), 'props', v.hidden.length ? `${c.props.length - v.hidden.length}/${c.props.length}` : 0)];
     if (v.type === 'board' || v.type === 'chart') out.push(sel(c.props.filter((p) => p.type === 'select' || p.type === 'status').map((p) => [p.id, t('db.groupBy', { name: p.name })]), v.groupBy || groupProp(c, v)?.id || '', (x) => setView((vv) => { vv.groupBy = x; }, 'Group view'), { class: 'db-sort', 'aria-label': 'Group by' }));
+    if (v.type === 'chart') { const nums = c.props.filter((p) => p.type === 'number'); if (nums.length) out.push(sel([['', t('db.countRows')], ...nums.map((p) => [p.id, t('db.sumOf', { name: p.name })])], v.sumProp || '', (x) => setView((vv) => { vv.sumProp = x || null; }, 'Chart sum'), { class: 'db-sort', 'aria-label': t('db.sumLabel') })); }
     if (v.type === 'calendar') out.push(sel(c.props.filter((p) => p.type === 'date').map((p) => [p.id, t('db.dateBy', { name: p.name })]), v.dateProp || c.props.find((p) => p.type === 'date')?.id || '', (x) => setView((vv) => { vv.dateProp = x; }, 'Calendar date')));
     tools.replaceChildren(...out);
     if (menu === 'filter') tools.append(filterPanel(c, v)); if (menu === 'props') tools.append(propsPanel(c, v));

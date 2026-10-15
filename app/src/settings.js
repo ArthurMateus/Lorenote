@@ -19,7 +19,8 @@ const h = (tag, attrs = {}, ...kids) => {
 export function applyAccent(color) {
   const s = document.documentElement.style;
   if (!/^#[0-9a-f]{6}$/i.test(color || '')) { for (const k of ['--accent', '--accent-2', '--accent-ink', '--accent-soft', '--sel']) s.removeProperty(k); return; }
-  s.setProperty('--accent', color); s.setProperty('--accent-2', `color-mix(in srgb, ${color} 70%, white)`); s.setProperty('--accent-ink', '#ffffff');
+  s.setProperty('--accent', color); s.setProperty('--accent-2', `color-mix(in srgb, ${color} 70%, white)`); const lum = (() => { const n = parseInt(color.slice(1), 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; })();
+  s.setProperty('--accent-ink', lum > 0.32 ? '#141414' : '#ffffff');      // whichever of dark or white reads better on this accent
   s.setProperty('--accent-soft', `color-mix(in srgb, ${color} 16%, var(--panel))`); s.setProperty('--sel', `color-mix(in srgb, ${color} 85%, white)`);
 }
 
@@ -75,6 +76,7 @@ export function setupSettings(ctx) {
       goal.addEventListener('change', () => { const v = Math.max(0, Math.min(100000, Math.round(Number(goal.value) || 0))); pref('wordGoal', v || null); goal.value = v || ''; });
       return [group('', row(t('set.goal'), t('set.goal.d'), goal),
         row(t('set.wc'), t('set.wc.d'), toggle(store.prefs.wordCounts !== false, (v) => { pref('wordCounts', v); ctx.view?.render?.(); }, t('set.wc'))),
+        row(t('wr.tags'), t('set.tags.d'), action(t('set.open'), closeThen(() => ctx.writer.openTags()))),
         row(t('set.manuscript'), t('set.manuscript.d'), action(t('set.open'), closeThen(() => ctx.manuscript.open()))),
         row(t('wr.capture'), t('set.capture.d'), action(t('set.open'), closeThen(() => ctx.writer.openCapture()))),
         row(t('set.compile'), t('set.compile.d'), action(t('wr.exportMd'), () => ctx.writer.downloadMd())))];

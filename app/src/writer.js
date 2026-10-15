@@ -83,6 +83,25 @@ export function compileMarkdown(store, boardId, depth = 1, seen = new Set()) {
   return parts.join('\n\n') + '\n';
 }
 
+/** minimal Markdown to HTML for printing a manuscript; everything is escaped first, so it cannot inject markup */
+export function mdToHtml(md) {
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*(?!\*)(.+?)\*/g, '$1<i>$2</i>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  const out = []; let para = [], list = false;
+  const flush = () => { if (para.length) { out.push('<p>' + para.map(inline).join('<br>') + '</p>'); para = []; } if (list) { out.push('</ul>'); list = false; } };
+  for (const line of String(md).split('\n')) {
+    const h1 = /^(#{1,6}) (.*)$/.exec(line);
+    if (h1) { flush(); out.push(`<h${h1[1].length}>${inline(h1[2])}</h${h1[1].length}>`); }
+    else if (/^---+$/.test(line)) { flush(); out.push('<hr>'); }
+    else if (/^[-*] /.test(line)) { if (!list) { flush(); out.push('<ul>'); list = true; } out.push('<li>' + inline(line.slice(2)) + '</li>'); }
+    else if (!line.trim()) flush();
+    else para.push(line);
+  }
+  flush(); return out.join('\n');
+}
+
+const mentionsIn = (store, id) => Object.values(store.elements).filter((e) => e.type === 'note' && !e.trashed && store.reachable(e) && String(e.content.html || '').includes('#ref-' + id));
+const tagsOf = (text) => [...new Set((String(text).match(/(^|\s)#[\p{L}\d_-]{2,30}/gu) || []).map((s) => s.trim().toLowerCase()))];
+
 // ------------------------------------------------------------------ writer tools
 export function setupWriter(ctx) {
   const { store, view, toast } = ctx;
@@ -98,18 +117,40 @@ export function setupWriter(ctx) {
     const nid = note.id; let timer = null;
     const live = document.querySelector(`[data-id="${nid}"] .note-text`);      // text typed in the card but not committed yet (the editor has not lost focus)
     if (live) { const h0 = sanitizeHtml(live.innerHTML); if (store.live(nid) && store.live(nid).content.html !== h0) { patch(nid, { html: h0 }, 'Edit note'); note = store.live(nid); } }
+    const FXK = 'lorenote.fx'; let fx = { size: 21, tw: false }; try { fx = { ...fx, ...JSON.parse(localStorage.getItem(FXK) || '{}') }; } catch { /* private mode */ }
+    const saveFx = () => { try { localStorage.setItem(FXK, JSON.stringify(fx)); } catch { /* private mode */ } };
     const dlg = h('dialog', { class: 'fx-dlg', 'aria-label': t('wr.focus') });
     const ed = h('div', { class: 'fx-ed', contenteditable: 'true', 'data-placeholder': t('wr.placeholder'), spellcheck: 'true' });
     const stat = h('span', { class: 'fx-stat' });
+    ed.style.fontSize = fx.size + 'px';
+    const snaps = () => (store.live(nid)?.content.snapshots || []);
+    const pushSnap = (html) => { if (!html || !noteWords(html)) return false; const list = snaps(); if (list.length && list[list.length - 1].html === html) return false; patch(nid, { snapshots: [...list, { t: Date.now(), html, w: noteWords(html) }].slice(-15) }, 'Snapshot'); return true; };
+    const histBtn = h('button', { type: 'button', class: 'tb', title: t('wr.historyTip'), onclick: () => showHistory() }, t('wr.history'));
+    let pop = null;
+    const showHistory = () => {
+      if (pop) { pop.remove(); pop = null; return; }
+      pop = h('div', { class: 'fx-pop' }, h('div', { class: 'muted', style: 'font-size:12px;padding:4px 8px' }, t('wr.historyHint')),
+        ...(snaps().length ? snaps().slice().reverse().map((s) => h('div', { class: 'fx-snap' }, h('span', {}, new Date(s.t).toLocaleString(getLang(), { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + t('wr.words', { n: s.w })),
+          h('button', { type: 'button', class: 'tb', onclick: () => { save(); pushSnap(sanitizeHtml(ed.innerHTML)); ed.innerHTML = sanitizeHtml(s.html); save(); count(); pop.remove(); pop = null; } }, t('wr.restore')))) : [h('div', { class: 'muted', style: 'padding:8px' }, t('wr.noSnaps'))]));
+      dlg.querySelector('.fx-bar').after(pop);
+    };
     const count = () => { const w = noteWords(ed.innerHTML); stat.textContent = t('wr.stat', { n: w, m: readingMinutes(w) }); };
     const save = () => { clearTimeout(timer); const html = sanitizeHtml(ed.innerHTML); const cur = store.live(nid); if (cur && cur.content.html !== html) patch(nid, { html }, 'Edit note', 'fx' + nid); };
     ed.innerHTML = sanitizeHtml(note.content.html || ''); attachSlash(ed);
     ed.addEventListener('input', () => { count(); clearTimeout(timer); timer = setTimeout(save, 500); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
     ed.addEventListener('keydown', (ev) => { ev.stopPropagation(); });
-    dlg.append(h('header', { class: 'fx-bar' }, h('span', { class: 'fx-hint' }, t('wr.esc')), stat, h('button', { type: 'button', class: 'btn primary', onclick: () => dlg.close() }, t('wr.done'))), h('div', { class: 'fx-wrap' }, ed));
+    const sizeBtn = (d, label) => h('button', { type: 'button', class: 'ib', title: t('wr.size'), 'aria-label': t('wr.size'), onclick: () => { fx.size = Math.max(15, Math.min(34, fx.size + d)); ed.style.fontSize = fx.size + 'px'; saveFx(); } }, label);
+    const twBtn = h('button', { type: 'button', class: 'tb' + (fx.tw ? ' on' : ''), 'aria-pressed': String(fx.tw), title: t('wr.typewriterTip'), onclick: () => { fx.tw = !fx.tw; twBtn.classList.toggle('on', fx.tw); twBtn.setAttribute('aria-pressed', String(fx.tw)); saveFx(); } }, t('wr.typewriter'));
+    const wrap = h('div', { class: 'fx-wrap' }, ed);
+    const centre = () => { if (!fx.tw) return; const s = getSelection(); if (!s.rangeCount) return; const r = s.getRangeAt(0).getBoundingClientRect(); if (!r.height && !r.top) return; const wr = wrap.getBoundingClientRect(); wrap.scrollTop += r.top - (wr.top + wr.height / 2); };
+    ed.addEventListener('input', centre); ed.addEventListener('keyup', (ev) => { if (ev.key.startsWith('Arrow') || ev.key === 'Enter') centre(); });
+    dlg.append(h('header', { class: 'fx-bar' }, h('span', { class: 'fx-hint' }, t('wr.esc')), stat, sizeBtn(-1, 'A−'), sizeBtn(1, 'A+'), twBtn,
+      h('button', { type: 'button', class: 'tb', title: t('wr.snapshotTip'), onclick: (ev) => { save(); const ok = pushSnap(sanitizeHtml(ed.innerHTML)); ev.target.textContent = ok ? t('wr.snapshotted') : t('wr.snapshot'); setTimeout(() => { ev.target.textContent = t('wr.snapshot'); }, 1500); } }, t('wr.snapshot')), histBtn,
+      h('button', { type: 'button', class: 'btn primary', onclick: () => dlg.close() }, t('wr.done'))), wrap);
     dlg.addEventListener('close', () => { save(); dlg.remove(); view.render(); });
     dlg.addEventListener('cancel', () => save());
+    { const last = snaps().at(-1); const cur = sanitizeHtml(note.content.html || ''); if (cur && (!last || (last.html !== cur && Date.now() - last.t > 30 * 60e3))) pushSnap(cur); }      // automatic safety copy of the draft as it was when you opened it
     document.body.append(dlg); dlg.showModal(); count();
     ed.focus(); const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
   }
@@ -171,14 +212,28 @@ export function setupWriter(ctx) {
   }
   let tick = null;
   function readToday() { try { const s = JSON.parse(localStorage.getItem('lorenote.wc.today') || 'null'); if (s && s.date === dayKey()) return s.n; } catch { /* private mode */ } return 0; }
-  function addToday(n) { try { localStorage.setItem('lorenote.wc.today', JSON.stringify({ date: dayKey(), n: readToday() + n })); } catch { /* private mode */ } }
+  function addToday(n) {
+    try {
+      localStorage.setItem('lorenote.wc.today', JSON.stringify({ date: dayKey(), n: readToday() + n }));
+      const hist = JSON.parse(localStorage.getItem('lorenote.wc.hist') || '{}'); hist[dayKey()] = readToday(); const keys = Object.keys(hist).sort().slice(-400); localStorage.setItem('lorenote.wc.hist', JSON.stringify(Object.fromEntries(keys.map((k) => [k, hist[k]]))));
+    } catch { /* private mode */ }
+  }
+  function streak(goal) {
+    try {
+      const hist = JSON.parse(localStorage.getItem('lorenote.wc.hist') || '{}'); let n = 0; const d = new Date();
+      const key = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+      if ((hist[key(d)] || 0) < goal) d.setDate(d.getDate() - 1);      // today still in progress: count from yesterday
+      while ((hist[key(d)] || 0) >= goal && n < 400) { n++; d.setDate(d.getDate() - 1); }
+      return n;
+    } catch { return 0; }
+  }
   function paintChip() {
     if (!chip) return; const goal = Number(store.prefs.wordGoal) || 0;
     if (!goal) { chip.hidden = true; return; }
     const total = totalWords(store);
     const done = readToday(); const pct = Math.min(100, Math.round((done / goal) * 100));
     chip.hidden = false; chip.style.setProperty('--p', pct + '%'); chip.classList.toggle('hit', done >= goal);
-    chip.textContent = t('wr.goalChip', { done, goal }); chip.title = t('wr.goalTip', { n: total });
+    chip.textContent = t('wr.goalChip', { done, goal }); chip.title = t('wr.goalTip', { n: total }) + (streak(goal) ? ' ' + t('wr.streak', { n: streak(goal) }) : '');
   }
   const schedule = () => { clearTimeout(tick); tick = setTimeout(paintChip, 900); };
   store.subscribe((i) => {
@@ -195,5 +250,29 @@ export function setupWriter(ctx) {
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i') { e.preventDefault(); openCapture(); }
   });
-  return { focus, openCapture, capture, copyText, downloadMd, paintChip, compileMarkdown: (id) => compileFor(id) };
+  // ---- tags: every #tag in your notes, with counts and the notes behind each
+  function openTags() {
+    const notes = Object.values(store.elements).filter((e) => e.type === 'note' && !e.trashed && store.reachable(e));
+    const map = new Map(); for (const n of notes) for (const tg of tagsOf(htmlText(n.content.html))) { if (!map.has(tg)) map.set(tg, []); map.get(tg).push(n); }
+    const dlg = h('dialog', { class: 'tag-dlg', 'aria-label': t('wr.tags') }); let cur = null;
+    const list = h('div', { class: 'tag-list' }), hits = h('div', { class: 'tag-hits' });
+    const showHits = () => hits.replaceChildren(...(cur ? map.get(cur).map((n) => h('button', { type: 'button', class: 'row', onclick: () => { dlg.close(); ctx.reveal?.(n); } }, h('span', { class: 'txt' }, (htmlText(n.content.html).replace(/\s+/g, ' ').trim()).slice(0, 110))))
+      : [h('p', { class: 'muted' }, map.size ? t('wr.tagsPick') : t('wr.tagsNone'))]));
+    const tagsSorted = [...map.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    list.replaceChildren(...tagsSorted.map(([tg, ns]) => h('button', { type: 'button', class: 'tag-chip', onclick: () => { cur = tg; for (const b of list.children) b.classList.toggle('on', b.dataset.t === tg); showHits(); } }, `${tg} · ${ns.length}`)));
+    for (const b of list.children) b.dataset.t = b.textContent.split(' · ')[0];
+    dlg.append(h('header', { class: 'tag-head' }, h('h3', {}, t('wr.tags')), h('button', { type: 'button', class: 'ib', 'aria-label': t('common.close'), onclick: () => dlg.close() }, '×')), list, hits);
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }); dlg.addEventListener('close', () => dlg.remove());
+    showHits(); document.body.append(dlg); dlg.showModal();
+  }
+  // ---- mentions: notes that link to a card with @
+  function showMentions(id) {
+    const target = store.get(id); const ns = mentionsIn(store, id);
+    const dlg = h('dialog', { class: 'tag-dlg', 'aria-label': t('wr.mentionsTitle') });
+    dlg.append(h('header', { class: 'tag-head' }, h('h3', {}, t('wr.mentionsOf', { name: (target?.content.title || htmlText(target?.content.html).trim().slice(0, 40) || t('common.untitled')) })), h('button', { type: 'button', class: 'ib', 'aria-label': t('common.close'), onclick: () => dlg.close() }, '×')),
+      h('div', { class: 'tag-hits' }, ...(ns.length ? ns.map((n) => h('button', { type: 'button', class: 'row', onclick: () => { dlg.close(); ctx.reveal?.(n); } }, h('span', { class: 'txt' }, htmlText(n.content.html).replace(/\s+/g, ' ').trim().slice(0, 120)))) : [h('p', { class: 'muted' }, t('wr.mentionsNone'))])));
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }); dlg.addEventListener('close', () => dlg.remove());
+    document.body.append(dlg); dlg.showModal();
+  }
+  return { focus, openCapture, capture, copyText, downloadMd, paintChip, openTags, showMentions, mentionCount: (id) => mentionsIn(store, id).length, compileMarkdown: (id) => compileFor(id) };
 }

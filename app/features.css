@@ -215,3 +215,25 @@
 .ms-scenes { list-style: none; margin: 6px 0 0; padding: 0; } .ms-scenes li { display: flex; align-items: center; gap: 4px; border-top: 1px solid var(--line); }
 .ms-scene { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 6px 2px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ms-scene:hover, .ms-name:hover { color: var(--accent); }
 @media (max-width: 760px) { .ms-dlg { width: 100vw; height: 100dvh; border-radius: 0; } .ms-cols { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } .ms-list { border-right: 0; border-bottom: 1px solid var(--line); } }
+
+/* ---------- round 2: links between cards, status, collapsed notes, snapshots, tags, print */
+.note-text a[href^="#ref-"], .fx-ed a[href^="#ref-"] { color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 0 5px; text-decoration: none; cursor: pointer; font-weight: 600; }
+.t-note[data-status]::before { content: ''; position: absolute; top: 8px; left: 8px; width: 9px; height: 9px; border-radius: 50%; background: transparent; }
+.t-note[data-status="draft"]::before { background: #e0af68; } .t-note[data-status="revise"]::before { background: #f7768e; } .t-note[data-status="done"]::before { background: #3ea34a; }
+.t-note.collapsed .note-text { max-height: 4.6em; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+.fx-pop { position: absolute; right: 16px; top: 52px; z-index: 5; width: min(380px, 90vw); max-height: 50vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 6px; }
+.fx-snap { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; font-size: 13px; border-top: 1px solid var(--line); }
+.fx-bar .tb.on { background: var(--accent-soft); color: var(--accent); }
+.tag-dlg { width: min(560px, 94vw); border-radius: 16px; padding: 0; } .tag-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 8px; } .tag-head h3 { flex: 1; margin: 0; font: 600 18px var(--serif); }
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 16px 8px; } .tag-chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: 13px; } .tag-chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.tag-hits { max-height: 46vh; overflow-y: auto; padding: 4px 8px 14px; display: flex; flex-direction: column; } .tag-hits p { padding: 8px 10px; margin: 0; }
+.ms-stat { border: 0; border-radius: 999px; padding: 1px 9px; font-size: 11px; background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--muted); } .ms-stat[data-s="draft"] { background: color-mix(in srgb, #e0af68 30%, transparent); color: var(--ink); } .ms-stat[data-s="revise"] { background: color-mix(in srgb, #f7768e 28%, transparent); color: var(--ink); } .ms-stat[data-s="done"] { background: color-mix(in srgb, #3ea34a 30%, transparent); color: var(--ink); }
+.ms-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.ms-printdoc { display: none; }
+@media print {
+  body.ms-printing > *:not(.ms-printdoc) { display: none !important; }
+  body.ms-printing { display: block !important; overflow: visible !important; background: #fff !important; }
+  body.ms-printing .ms-printdoc { display: block !important; position: static; max-width: 34em; margin: 0 auto; padding: 0 1em; color: #000; font: 12pt/1.6 Georgia, "Times New Roman", serif; }
+  body.ms-printing .ms-printdoc h1 { font-size: 22pt; margin: 1.2em 0 .5em; page-break-before: always; } body.ms-printing .ms-printdoc h1:first-child { page-break-before: auto; }
+  body.ms-printing .ms-printdoc h2 { font-size: 17pt; margin: 1.1em 0 .4em; } body.ms-printing .ms-printdoc h3, body.ms-printing .ms-printdoc h4 { font-size: 13pt; margin: 1em 0 .3em; } body.ms-printing .ms-printdoc p { margin: 0 0 .8em; text-align: justify; }
+}

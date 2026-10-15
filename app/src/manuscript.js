@@ -1,7 +1,7 @@
 // Manuscript view: the current board read as a book. Columns are chapters, the notes inside them are scenes, boards are
 // parts. Shows word counts and targets per chapter, lets you reorder chapters and scenes, and previews the compiled text.
 import { t } from './i18n.js';
-import { noteWords, compileMarkdown, readingMinutes, wordCount } from './writer.js';
+import { noteWords, compileMarkdown, readingMinutes, wordCount, mdToHtml } from './writer.js';
 
 const h = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
@@ -17,7 +17,9 @@ const firstLine = (html) => { const d = document.createElement('div'); d.innerHT
 
 export function setupManuscript(ctx) {
   const { store, view } = ctx;
-  let dlg = null, boardId = null;
+  let dlg = null, boardId = null, plain = false;
+  const STAT = ['', 'draft', 'revise', 'done'];
+  const compile = () => { const md = compileMarkdown(store, boardId); return plain ? md.replace(/\*\*(.+?)\*\*/g, '$1').replace(/(^|[^*])\*(?!\*)(.+?)\*/g, '$1$2').replace(/^#{1,6} /gm, '') : md; };
 
   const patch = (id, content, label) => { const cur = store.live(id); if (cur) store.commit([{ id, after: { ...cur, content: { ...cur.content, ...content }, modified: Date.now() } }], { label }); };
   const sceneWords = (e) => (e.type === 'note' ? noteWords(e.content.html) : e.type === 'board' ? partWords(e.id) : 0);
@@ -74,18 +76,27 @@ export function setupManuscript(ctx) {
       if (tgt) card.append(h('div', { class: 'ms-bar' + (s.words >= tgt ? ' hit' : '') }, h('span', { style: `width:${Math.min(100, Math.round((s.words / tgt) * 100))}%` })));
       if (s.kind === 'chapter') card.append(h('ol', { class: 'ms-scenes' }, ...s.scenes.map((k) => h('li', {},
         h('button', { type: 'button', class: 'ms-scene', onclick: () => reveal(k) }, k.type === 'board' ? '📁 ' + (k.content.title || '') : firstLine(k.content.html) || t('ms.emptyScene')),
+        k.type === 'note' ? h('button', { type: 'button', class: 'ms-stat', 'data-s': k.content.status || '', title: t('st.tip'), onclick: () => patch(k.id, { status: STAT[(STAT.indexOf(k.content.status || '') + 1) % STAT.length] }, 'Note status') }, t('st.' + (k.content.status || 'none'))) : null,
         h('span', { class: 'ms-w' }, String(sceneWords(k))),
         h('button', { type: 'button', class: 'ib', 'aria-label': t('ms.up'), onclick: () => moveScene(e, k, -1) }, '↑'), h('button', { type: 'button', class: 'ib', 'aria-label': t('ms.down'), onclick: () => moveScene(e, k, 1) }, '↓')))));
       return card;
     }) : [h('p', { class: 'muted' }, t('ms.empty'))]));
-    right.textContent = compileMarkdown(store, boardId);
+    right.textContent = compile();
+  }
+
+  function printIt() {
+    let doc = document.querySelector('.ms-printdoc'); if (!doc) { doc = h('div', { class: 'ms-printdoc' }); document.body.append(doc); }
+    doc.innerHTML = mdToHtml(compile()); document.body.classList.add('ms-printing');
+    const done = () => { document.body.classList.remove('ms-printing'); doc.remove(); removeEventListener('afterprint', done); }; addEventListener('afterprint', done); setTimeout(() => print(), 50);
   }
 
   function open(id) {
     boardId = id || view.boardId; dlg?.remove();
     dlg = h('dialog', { class: 'ms-dlg', 'aria-label': t('ms.heading') },
       h('header', { class: 'ms-head' }, h('div', { class: 'ms-top' }), h('div', { class: 'ms-acts' },
+        h('label', { class: 'ms-opt' }, h('input', { type: 'checkbox', onchange: (e) => { plain = e.target.checked; render(); } }), t('ms.plain')),
         h('button', { type: 'button', class: 'tb', onclick: () => ctx.writer.copyText(boardId) }, t('wr.copyText')), h('button', { type: 'button', class: 'tb', onclick: () => ctx.writer.downloadMd(boardId) }, t('wr.exportMd')),
+        h('button', { type: 'button', class: 'tb', onclick: printIt }, t('ms.print')),
         h('button', { type: 'button', class: 'ib', 'aria-label': t('common.close'), onclick: () => dlg.close() }, '×'))),
       h('div', { class: 'ms-cols' }, h('div', { class: 'ms-list' }), h('div', { class: 'ms-pwrap' }, h('div', { class: 'ms-ptitle muted' }, t('ms.preview')), h('pre', { class: 'ms-prev' }))));
     document.body.append(dlg);

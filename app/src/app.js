@@ -14,6 +14,7 @@ import { openDatabase } from './database.js';
 import { setupSettings } from './settings.js';
 import { setupWriter } from './writer.js';
 import { setupManuscript } from './manuscript.js';
+import { setMentionSource } from './slash.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -153,7 +154,21 @@ export async function startApp({ backend = null, user = null } = {}) {
   const tree = setupTree(view, store);
   const mm = setupMinimap(view, store);
   const present = setupPresent(view, store, toast);
-  const writer = setupWriter({ store, view, toast, openSettings: (s) => settings.open(s) });
+  const writer = setupWriter({ store, view, toast, openSettings: (s) => settings.open(s), reveal: (e) => reveal(e) });
+  // "@" in a note links to another card; links follow renames because they point at the card id
+  const oneLine = (html) => { const d = document.createElement('div'); d.innerHTML = String(html || '').replace(/<br\s*\/?>|<\/(div|p|li|h2|h3)>/gi, '\n'); return (d.textContent || '').split('\n').map((s) => s.trim()).find(Boolean) || ''; };
+  setMentionSource((q) => {
+    const out = [];
+    for (const e of Object.values(store.elements)) {
+      if (e.trashed || e.id === store.rootId || !(e.type === 'board' || e.type === 'column' || e.type === 'note') || !store.reachable(e)) continue;
+      const label = (e.type === 'note' ? oneLine(e.content.html) : e.content.title || '').slice(0, 48); if (!label) continue;
+      if (q && !label.toLowerCase().includes(q)) continue;
+      out.push({ id: e.id, label, hint: TYPE_LABEL[e.type] + ' · ' + boardName(boardOf(e)), rank: (e.type === 'note' ? 2 : 0) + (label.toLowerCase().startsWith(q) ? 0 : 1) });
+    }
+    return out.sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
+  });
+  view.onRef = (id) => { const e = store.live(id); if (!e || !store.reachable(e)) { toast(t('wr.refGone')); return; } if (e.type === 'board') { view.setBoard(e.id); renderCrumbs(); } else reveal(e); };
+  view.mentionCount = (id) => writer.mentionCount(id); view.onMentions = (id) => writer.showMentions(id);
   view.onFocusNote = (id) => writer.focus(id); view.onCopyText = (id) => writer.copyText(id); view.onExportMd = (id) => writer.downloadMd(id);
   $('#btn-capture').onclick = () => writer.openCapture();
   const manuscript = setupManuscript({ store, view, writer, reveal: (e) => reveal(e) });
@@ -255,7 +270,7 @@ export async function startApp({ backend = null, user = null } = {}) {
     const here = () => { const r = dom.viewport.getBoundingClientRect(); const p = view.toWorld(r.left + r.width / 2, r.top + r.height / 2); return { parentId: view.boardId, section: 'canvas', x: p.x - 110, y: p.y - 60 }; };
     const make = (type) => () => { const el = inter.create(type, here()); view.render(); if (el) view.select([el.id]); };
     const COMMANDS = [
-      [t('cmd.note'), make('note')], [t('cmd.todo'), make('todo')], [t('cmd.capture'), () => writer.openCapture()], [t('cmd.manuscript'), () => manuscript.open()], [t('cmd.focus'), () => { const sel = [...view.selection].map((id) => store.live(id)).find((e) => e?.type === 'note'); writer.focus(sel?.id); }], [t('cmd.copyBoard'), () => writer.copyText(view.boardId)], [t('cmd.exportBoard'), () => writer.downloadMd(view.boardId)], [t('cmd.database'), make('database')], [t('cmd.table'), make('table')], [t('cmd.column'), make('column')], [t('cmd.board'), make('board')],
+      [t('cmd.note'), make('note')], [t('cmd.todo'), make('todo')], [t('cmd.capture'), () => writer.openCapture()], [t('cmd.tags'), () => writer.openTags()], [t('cmd.manuscript'), () => manuscript.open()], [t('cmd.focus'), () => { const sel = [...view.selection].map((id) => store.live(id)).find((e) => e?.type === 'note'); writer.focus(sel?.id); }], [t('cmd.copyBoard'), () => writer.copyText(view.boardId)], [t('cmd.exportBoard'), () => writer.downloadMd(view.boardId)], [t('cmd.database'), make('database')], [t('cmd.table'), make('table')], [t('cmd.column'), make('column')], [t('cmd.board'), make('board')],
       [t('cmd.theme'), () => $('#btn-theme').click()], [t('cmd.present'), () => $('#btn-present').click()], [t('cmd.fit'), () => $('#btn-fit').click()],
       [t('cmd.templates'), () => $('#btn-templates').click()], [t('cmd.boards'), () => $('#btn-tree').click()], [t('cmd.trash'), () => $('#btn-trash').click()], [t('cmd.help'), () => $('#dlg-help').showModal()],
     ].filter(([name]) => !q || name.toLowerCase().includes(q));
@@ -265,7 +280,7 @@ export async function startApp({ backend = null, user = null } = {}) {
       row.onclick = () => { searchDlg.close(); run(); }; list.append(row);
     }
     if (!q) return;
-    const hits = Object.values(store.elements).filter((e) => !e.trashed && e.id !== store.rootId && e.type !== 'line' && store.reachable(e) && elementText(e).toLowerCase().includes(q)).slice(0, 60);
+    const hits = Object.values(store.elements).filter((e) => !e.trashed && e.id !== store.rootId && e.type !== 'line' && store.reachable(e) && elementText(e).toLowerCase().includes(q)).sort((a, b) => (['board', 'column', 'database'].includes(a.type) ? 0 : 1) - (['board', 'column', 'database'].includes(b.type) ? 0 : 1)).slice(0, 60);
     if (!hits.length && !COMMANDS.length) list.textContent = t('search.none');
     for (const e of hits) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'row';

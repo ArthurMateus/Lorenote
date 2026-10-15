@@ -280,7 +280,10 @@ export class View {
       for (const [lbl, cmd, tip] of [['B', 'bold', t('ctx.bold')], ['I', 'italic', t('ctx.italic')], ['U', 'underline', t('ctx.underline')], ['S', 'strikeThrough', t('ctx.strike')], ['•', 'insertUnorderedList', t('ctx.bullets')], ['1.', 'insertOrderedList', t('ctx.numbers')]]) {
         out.push(btn(lbl, tip, () => { this.focusEdit(one.id); document.execCommand(cmd); }, 'fmt'));
       }
-      out.push(btn(t('wr.write'), t('wr.writeTip'), () => this.onFocusNote?.(one.id), 'primary'), sep());
+      const STAT = ['', 'draft', 'revise', 'done']; const cur = one.content.status || '';
+      out.push(btn(t('wr.write'), t('wr.writeTip'), () => this.onFocusNote?.(one.id), 'primary'),
+        btn(t('st.' + (cur || 'none')), t('st.tip'), () => edit((e) => ({ ...e, content: { ...e.content, status: STAT[(STAT.indexOf(cur) + 1) % STAT.length] } }), 'Note status')),
+        btn(one.content.collapsed ? t('wr.expand') : t('wr.collapse'), t('wr.collapseTip'), () => edit((e) => ({ ...e, content: { ...e.content, collapsed: !e.content.collapsed } }), 'Collapse note')), sep());
     }
     if (one?.type === 'table') {
       const mut = (fn, label) => edit((e) => { const rows = e.content.rows.map((r) => [...r]); fn(rows); return { ...e, content: { ...e.content, rows } }; }, label);
@@ -290,6 +293,8 @@ export class View {
     }
     if (one?.type === 'todo') out.push(btn(one.content.showTitle ? t('ctx.hideTitle') : t('ctx.addTitle'), t('ctx.titleTip'), () => edit((e) => ({ ...e, content: { ...e.content, showTitle: !e.content.showTitle } }), 'Toggle title')), btn(t('ctx.addTaskShort'), t('ctx.addTaskTip'), () => this.onAddTask?.(one.id)), sep());
     if (one?.type === 'sketch') out.push(btn(t('ctx.draw'), t('ctx.drawTip'), () => { this.drawing = one.id; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'), sep());
+    const mentions = one && this.mentionCount ? this.mentionCount(one.id) : 0;
+    if (mentions) out.push(btn(t('wr.mentions', { n: mentions }), t('wr.mentionsTip'), () => this.onMentions?.(one.id)), sep());
     if (one && (one.type === 'board' || one.type === 'column')) out.push(btn(t('wr.copyText'), t('wr.copyTextTip'), () => this.onCopyText?.(one.id)), btn(t('wr.exportMd'), t('wr.exportMdTip'), () => this.onExportMd?.(one.id)), sep());
     if (one?.type === 'board') {
       out.push(btn(t('ctx.open'), t('ctx.openTip'), () => this.onOpen?.(one.id)), btn(t('ctx.rename'), t('ctx.renameTip'), () => this.focusEdit(one.id)));
@@ -343,7 +348,7 @@ const patchContent = (view, id, patch, label, merge) => {
 
 const BUILDERS = {
   note(rec, e, view) {
-    const ed = h('div', { class: 'note-text', 'data-edit': 'true', 'data-placeholder': t('card.notePlaceholder'), spellcheck: 'false' });
+    const ed = h('div', { class: 'note-text', 'data-edit': 'true', 'data-placeholder': t('card.notePlaceholder'), spellcheck: 'true' });
     ed.addEventListener('dblclick', () => { ed.contentEditable = 'true'; ed.focus(); });
     ed.addEventListener('blur', () => {
       ed.contentEditable = 'false';
@@ -355,11 +360,12 @@ const BUILDERS = {
     ed.addEventListener('drop', (ev) => { if (!ed.isContentEditable) return; ev.preventDefault(); const tx = ev.dataTransfer?.getData('text/plain'); if (tx) document.execCommand('insertText', false, tx); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
     attachSlash(ed);
+    ed.addEventListener('click', (ev) => { const a = ev.target.closest?.('a[href^="#ref-"]'); if (a && (!ed.isContentEditable || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); ev.stopPropagation(); view.onRef?.(a.getAttribute('href').slice(5)); } });
     const wc = h('div', { class: 'note-wc', 'aria-hidden': 'true' });
     const paintWc = (html) => { const n = view.store.prefs.wordCounts === false ? 0 : noteWords(html); wc.textContent = n > 0 ? t('wr.words', { n }) : ''; wc.hidden = !n; };
     ed.addEventListener('input', () => paintWc(ed.innerHTML));
     rec.node.append(ed, wc);
-    rec.update = (el) => { paintWc(el.content.html || ''); if (document.activeElement === ed) return; const clean = sanitizeHtml(el.content.html || ''); if (ed.innerHTML !== clean) ed.innerHTML = clean; };      // sanitised again on every render: stored data is never trusted
+    rec.update = (el) => { rec.node.dataset.status = el.content.status || ''; rec.node.classList.toggle('collapsed', !!el.content.collapsed); paintWc(el.content.html || ''); if (document.activeElement === ed) return; const clean = sanitizeHtml(el.content.html || ''); if (ed.innerHTML !== clean) ed.innerHTML = clean; };      // sanitised again on every render: stored data is never trusted
   },
 
   task(rec, e, view) {
