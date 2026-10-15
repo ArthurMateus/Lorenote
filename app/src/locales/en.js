@@ -494,5 +494,9 @@ export default {
     "set.shortcuts.d": "Gestures and keys that make boards faster. Ctrl+K opens search and commands.",
     "set.about": "About Lorenote",
     "set.about.d": "A visual workspace for notes, links, files and databases on an endless canvas. What you make is yours: export it any time.",
+    "cat.Design": "Design",
+    "cat.Business": "Business",
+    "cat.Media": "Media",
+    "cat.Making & Dev": "Making & Dev",
   },
 };

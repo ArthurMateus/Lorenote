@@ -476,5 +476,9 @@ export default {
     "set.shortcuts.d": "Gestos e teclas que agilizam os quadros. Ctrl+K abre a busca e os comandos.",
     "set.about": "Sobre o Lorenote",
     "set.about.d": "Um espaço visual para notas, links, arquivos e bancos de dados em um canvas infinito. O que você cria é seu: exporte quando quiser.",
+    "cat.Design": "Design",
+    "cat.Business": "Negócios",
+    "cat.Media": "Mídia",
+    "cat.Making & Dev": "Criar e programar",
   },
 };

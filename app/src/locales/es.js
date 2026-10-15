@@ -476,5 +476,9 @@ export default {
     "set.shortcuts.d": "Gestos y teclas que agilizan los tableros. Ctrl+K abre la búsqueda y los comandos.",
     "set.about": "Acerca de Lorenote",
     "set.about.d": "Un espacio visual para notas, enlaces, archivos y bases de datos en un lienzo infinito. Lo que creas es tuyo: expórtalo cuando quieras.",
+    "cat.Design": "Diseño",
+    "cat.Business": "Negocios",
+    "cat.Media": "Medios",
+    "cat.Making & Dev": "Crear y desarrollar",
   },
 };
