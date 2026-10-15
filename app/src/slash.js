@@ -10,6 +10,10 @@ const ITEMS = [
   { k: 'hr', label: 'Divider', hint: 'A horizontal line', words: 'divider hr line separator', run: () => document.execCommand('insertHorizontalRule') },
   { k: 'b', label: 'Bold text', hint: 'Make the line bold', words: 'bold strong', run: () => { document.execCommand('selectAll'); document.execCommand('bold'); collapseEnd(); } },
   { k: 'date', label: "Today's date", hint: 'Insert the current date', words: 'date today', run: () => document.execCommand('insertText', false, new Date().toLocaleDateString(undefined, { dateStyle: 'long' })) },
+  { k: 'scene', label: 'Scene break', hint: 'A * * * line between scenes', words: 'scene break section divider asterisks', run: () => document.execCommand('insertHTML', false, '<div>* * *</div><div><br></div>') },
+  { k: 'chapter', label: 'Chapter heading', hint: 'A big heading for a new chapter', words: 'chapter heading title part', run: () => { document.execCommand('insertText', false, t('slash.chapterWord') + ' '); block('h2'); } },
+  { k: 'tk', label: 'To come (TK)', hint: 'Mark a gap to fill in later', words: 'tk todo placeholder gap later', run: () => document.execCommand('insertText', false, '[TK] ') },
+  { k: 'dialogue', label: 'Dialogue line', hint: 'Start a line of speech', words: 'dialogue speech quote line', run: () => document.execCommand('insertText', false, '“') },
   { k: 'text', label: 'Plain text', hint: 'Back to a normal paragraph', words: 'text paragraph plain normal', run: () => block('div') },
 ];
 

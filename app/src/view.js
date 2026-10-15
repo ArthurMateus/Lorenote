@@ -5,6 +5,7 @@ import * as layout from './layout.js';
 import { applyTheme } from './theme.js';
 import { buildPreview } from './database.js';
 import { attachSlash } from './slash.js';
+import { noteWords } from './writer.js';
 import { COLORS, BOARD_COLORS, BOARD_ICONS, TYPE_LABEL, isContainer, makeElement, sanitizeHtml, hostOf, normalizeUrl, safeWebUrl } from './model.js';
 
 const h = (tag, attrs = {}, ...kids) => {
@@ -272,7 +273,7 @@ export class View {
       for (const [lbl, cmd, tip] of [['B', 'bold', t('ctx.bold')], ['I', 'italic', t('ctx.italic')], ['U', 'underline', t('ctx.underline')], ['S', 'strikeThrough', t('ctx.strike')], ['•', 'insertUnorderedList', t('ctx.bullets')], ['1.', 'insertOrderedList', t('ctx.numbers')]]) {
         out.push(btn(lbl, tip, () => { this.focusEdit(one.id); document.execCommand(cmd); }, 'fmt'));
       }
-      out.push(sep());
+      out.push(btn(t('wr.write'), t('wr.writeTip'), () => this.onFocusNote?.(one.id), 'primary'), sep());
     }
     if (one?.type === 'table') {
       const mut = (fn, label) => edit((e) => { const rows = e.content.rows.map((r) => [...r]); fn(rows); return { ...e, content: { ...e.content, rows } }; }, label);
@@ -282,6 +283,7 @@ export class View {
     }
     if (one?.type === 'todo') out.push(btn(one.content.showTitle ? t('ctx.hideTitle') : t('ctx.addTitle'), t('ctx.titleTip'), () => edit((e) => ({ ...e, content: { ...e.content, showTitle: !e.content.showTitle } }), 'Toggle title')), btn(t('ctx.addTaskShort'), t('ctx.addTaskTip'), () => this.onAddTask?.(one.id)), sep());
     if (one?.type === 'sketch') out.push(btn(t('ctx.draw'), t('ctx.drawTip'), () => { this.drawing = one.id; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'), sep());
+    if (one && (one.type === 'board' || one.type === 'column')) out.push(btn(t('wr.copyText'), t('wr.copyTextTip'), () => this.onCopyText?.(one.id)), btn(t('wr.exportMd'), t('wr.exportMdTip'), () => this.onExportMd?.(one.id)), sep());
     if (one?.type === 'board') {
       out.push(btn(t('ctx.open'), t('ctx.openTip'), () => this.onOpen?.(one.id)), btn(t('ctx.rename'), t('ctx.renameTip'), () => this.focusEdit(one.id)));
       for (const ic of BOARD_ICONS.slice(0, 6)) out.push(btn(ic, t('ctx.icon'), () => edit((e) => ({ ...e, content: { ...e.content, icon: ic } }), 'Board icon')));
@@ -344,8 +346,11 @@ const BUILDERS = {
     ed.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') ed.blur(); ev.stopPropagation(); });
     ed.addEventListener('paste', (ev) => { ev.preventDefault(); document.execCommand('insertText', false, ev.clipboardData.getData('text/plain')); });
     attachSlash(ed);
-    rec.node.append(ed);
-    rec.update = (el) => { if (document.activeElement === ed) return; const clean = sanitizeHtml(el.content.html || ''); if (ed.innerHTML !== clean) ed.innerHTML = clean; };      // sanitised again on every render: stored data is never trusted
+    const wc = h('div', { class: 'note-wc', 'aria-hidden': 'true' });
+    const paintWc = (html) => { const n = view.store.prefs.wordCounts === false ? 0 : noteWords(html); wc.textContent = n > 0 ? t('wr.words', { n }) : ''; wc.hidden = !n; };
+    ed.addEventListener('input', () => paintWc(ed.innerHTML));
+    rec.node.append(ed, wc);
+    rec.update = (el) => { paintWc(el.content.html || ''); if (document.activeElement === ed) return; const clean = sanitizeHtml(el.content.html || ''); if (ed.innerHTML !== clean) ed.innerHTML = clean; };      // sanitised again on every render: stored data is never trusted
   },
 
   task(rec, e, view) {

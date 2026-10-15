@@ -5,8 +5,8 @@ import { makeElement } from './model.js';
 import { uid, idbGet, idbSet } from './store.js';
 import { t as tr, onLangChange } from './i18n.js';
 
-const ICONS = { Planning: '📅', Briefs: '📝', Moodboards: '🎨', Storyboards: '🎬', Brainstorming: '💡', Writing: '✍️', 'Product & UX': '🧩', Marketing: '📣', Education: '🎓', Personal: '🏡', Design: '✏️', Business: '💼', Media: '🎙️', 'Making & Dev': '🛠️', Mine: '⭐' };
-const TINTS = { Planning: '#7aa2f7', Briefs: '#e0af68', Moodboards: '#f7768e', Storyboards: '#bb9af7', Brainstorming: '#9ece6a', Writing: '#7dcfff', 'Product & UX': '#ff9e64', Marketing: '#f7768e', Education: '#9ece6a', Personal: '#e0af68', Design: '#bb9af7', Business: '#7aa2f7', Media: '#f7768e', 'Making & Dev': '#ff9e64', Mine: '#e0af68' };
+const ICONS = { Planning: '📅', Briefs: '📝', Moodboards: '🎨', Storyboards: '🎬', Brainstorming: '💡', Writing: '✍️', 'Product & UX': '🧩', Marketing: '📣', Education: '🎓', Personal: '🏡', Design: '✏️', Business: '💼', Media: '🎙️', 'Making & Dev': '🛠️', Fiction: '📖', Nonfiction: '📰', 'Writing life': '🖋️', Mine: '⭐' };
+const TINTS = { Planning: '#7aa2f7', Briefs: '#e0af68', Moodboards: '#f7768e', Storyboards: '#bb9af7', Brainstorming: '#9ece6a', Writing: '#7dcfff', 'Product & UX': '#ff9e64', Marketing: '#f7768e', Education: '#9ece6a', Personal: '#e0af68', Design: '#bb9af7', Business: '#7aa2f7', Media: '#f7768e', 'Making & Dev': '#ff9e64', Fiction: '#bb9af7', Nonfiction: '#7dcfff', 'Writing life': '#9ece6a', Mine: '#e0af68' };
 const MAX_BYTES = 4 * 1024 * 1024;
 
 const h = (tag, attrs = {}, ...kids) => {

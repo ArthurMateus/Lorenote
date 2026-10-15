@@ -21,7 +21,7 @@
   <header class="l-top"><span class="brand"><span class="logo"></span>Lorenote</span><span class="l-top-actions"><select id="lang-select" class="lang-select" data-i18n-aria-label="lang.label" aria-label="Language"></select><button class="ib theme-toggle" type="button" data-i18n-title="theme.switch" title="Switch light / dark"><i data-icon="moon"></i></button><button id="auth-guest" class="btn ghost" type="button" data-i18n="landing.guest">Try it without an account</button></span></header>
   <div class="l-grid">
     <div class="l-hero">
-      <h1><span data-i18n="landing.h1a">Think visually.</span><br><span data-i18n="landing.h1b">Keep it all on one board.</span></h1>
+      <h1><span data-i18n="landing.h1a">Catch every idea.</span><br><span data-i18n="landing.h1b">Shape it into your next story.</span></h1>
       <p data-i18n="landing.lead">Notes, links, to-do lists, tables, sketches and files on an endless canvas. Nest boards inside boards, connect ideas with lines, and pick up where you left off on any device.</p>
       <ul>
         <li><b data-i18n="landing.b1h">Free-form boards</b><span data-i18n="landing.b1t"> with columns, lists and connectors</span></li>
@@ -47,6 +47,8 @@
   <button id="btn-tree" class="ib" data-i18n-title="nav.boardsTip" title="Boards (all your nested boards)" data-i18n-aria-label="nav.boards" aria-label="Boards"><i data-icon="tree"></i></button>
   <nav id="crumbs" data-i18n-aria-label="nav.path" aria-label="Board path"></nav>
   <span class="spacer"></span>
+  <button id="wc-chip" class="wc-chip" type="button" hidden></button>
+  <button id="btn-capture" class="ib" data-i18n-title="wr.captureTip" title="Capture an idea (Ctrl+Shift+I)" data-i18n-aria-label="wr.capture" aria-label="Capture an idea"><i data-icon="bulb"></i></button>
   <span id="sync" class="sync" hidden></span>
   <button id="btn-undo" class="ib" data-i18n-title="nav.undoTip" title="Undo (Ctrl+Z)" data-i18n-aria-label="nav.undo" aria-label="Undo" disabled><i data-icon="undo"></i></button>
   <button id="btn-redo" class="ib" data-i18n-title="nav.redoTip" title="Redo (Ctrl+Shift+Z)" data-i18n-aria-label="nav.redo" aria-label="Redo" disabled><i data-icon="redo"></i></button>
@@ -95,7 +97,7 @@
     <h2 data-i18n="empty.title">An empty board</h2>
     <p data-i18n="empty.body">Drag a tool from the left, double-click anywhere to drop a note, or drop images and files here.</p>
     <p class="muted" data-i18n="empty.tip">Tip: drag cards into columns and lists, and drag a line’s end onto a card to connect them.</p>
-    <p><button id="empty-templates" class="btn primary" type="button" data-i18n="empty.templates">Start from a template</button></p>
+    <p><button id="empty-templates" class="btn primary" type="button" data-i18n="empty.templates">Start from a writing template</button></p>
   </div>
   <div id="present-hud" hidden>
     <button id="present-prev" class="ib" data-i18n-aria-label="present.prev" aria-label="Previous"><i data-icon="arrowLeft"></i></button>

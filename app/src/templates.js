@@ -170,7 +170,7 @@ const brief = (sections, extras = []) => [
 ];
 
 // ------------------------------------------------------------------ built-in library
-export const CATEGORIES = ['Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Writing', 'Product & UX', 'Marketing', 'Education', 'Personal', 'Design', 'Business', 'Media', 'Making & Dev'];
+export const CATEGORIES = ['Fiction', 'Nonfiction', 'Writing life', 'Writing', 'Planning', 'Briefs', 'Moodboards', 'Storyboards', 'Brainstorming', 'Writing', 'Product & UX', 'Marketing', 'Education', 'Personal', 'Design', 'Business', 'Media', 'Making & Dev'];
 
 const L = [];
 const add = (id, name, category, description, nodes) => {
@@ -403,5 +403,92 @@ add('bug-triage', 'Bug triage', 'Making & Dev', 'Sort reports by severity and de
 add('api-map', 'System map', 'Making & Dev', 'Boxes and arrows for how parts of a system talk.', () => [
   T.note(60, 160, nt('App', 'What the user sees'), { w: 180, color: B, id: 'a' }), T.note(320, 160, nt('API', 'Rules and checks'), { w: 180, color: Y, id: 'b' }), T.note(580, 60, nt('Database', 'Where data lives'), { w: 180, color: G, id: 'c' }), T.note(580, 260, nt('Queue', 'Slow jobs'), { w: 180, color: P, id: 'd' }),
   T.line('a', 'b'), T.line('b', 'c'), T.line('b', 'd')]);
+
+// ---- Fiction
+add('novel-outline', 'Novel outline', 'Fiction', 'Six story turns, each with room for the scenes that carry it.', () => [
+  T.note(60, 40, nt('Premise', 'Who wants what, and what stands in the way? One or two sentences.'), { w: 560, color: Y }),
+  ...[['1 · Setup', 'Show the ordinary world and what is missing from it.'], ['2 · Disturbance', 'Something arrives that cannot be ignored.'], ['3 · Rising trouble', 'Every attempt to fix it makes things worse.'], ['4 · Midpoint turn', 'A discovery or loss that changes the goal.'], ['5 · Crisis & climax', 'The hardest choice, then the confrontation.'], ['6 · Aftermath', 'What changed, and what it cost.']]
+    .map(([title, hint], i) => T.col(60 + (i % 3) * 290, 150 + Math.floor(i / 3) * 330, title, [{ type: 'note', color: [Y, B, G, P, O, R][i], content: { html: nt('Beat', hint) } }, { type: 'note', content: { html: nt('Scenes', 'List the scenes that do this job.') } }], { w: 262 }))]);
+add('beat-sheet', 'Beat sheet', 'Fiction', 'Ten beats in a row to check that your story keeps moving.', () => [
+  ...['Opening image', 'Want', 'Break in', 'Fun & games', 'Midpoint', 'Pressure', 'Low point', 'Turn', 'Finale', 'Closing image'].map((b, i) => T.col(60 + (i % 5) * 230, 60 + Math.floor(i / 5) * 280, b, [{ type: 'note', color: i % 2 ? Y : B, content: { html: nt('What happens', '') } }], { w: 210 }))]);
+add('character-profile', 'Character profile', 'Fiction', 'Who they are, what they want and what they hide.', () => [
+  T.image(60, 60, 200, 1.1), T.note(280, 60, nt('Name & role', 'Age, job, where they live.'), { w: 260, color: Y }), T.note(280, 170, nt('Want / need', 'What they chase vs. what they actually need.'), { w: 260, color: B }),
+  T.note(280, 290, nt('Flaw & fear', 'What gets in their own way?'), { w: 260, color: R }), T.note(60, 330, nt('Voice', 'How they talk: rhythm, favourite words, what they never say.'), { w: 200, color: P }),
+  T.table(570, 60, [['Trait', 'Detail'], ['Habit', ''], ['Secret', ''], ['Strength', ''], ['Contradiction', '']], { w: 320 }), T.todo(570, 260, 'Show on the page', ['A small kindness', 'A bad decision', 'A moment of humour'], { w: 320 })]);
+add('character-web', 'Character web', 'Fiction', 'See who is tied to whom, and why it matters.', () => [
+  T.note(360, 240, nt('Protagonist', 'Name'), { w: 160, color: Y, id: 'p' }), T.note(80, 60, nt('Ally', 'What they give'), { w: 150, color: G, id: 'a' }), T.note(640, 60, nt('Rival', 'What they want'), { w: 150, color: R, id: 'r' }),
+  T.note(80, 420, nt('Mentor', 'What they teach'), { w: 150, color: B, id: 'm' }), T.note(640, 420, nt('Wildcard', 'What they disrupt'), { w: 150, color: P, id: 'w' }),
+  T.line('p', 'a'), T.line('p', 'r'), T.line('p', 'm'), T.line('p', 'w'), T.line('a', 'r', { dashed: true })]);
+add('world-bible', 'World bible', 'Fiction', 'One home for everything the reader must believe about your world.', () => [
+  T.note(60, 40, nt('The world in a line', 'What makes it different from ours?'), { w: 540, color: Y }),
+  T.board(60, 160, 'Places', '🗺️', '#7aa2f7'), T.board(180, 160, 'People', '🧑', '#f7768e'), T.board(300, 160, 'History', '📜', '#e0af68'), T.board(420, 160, 'Rules', '⚖️', '#bb9af7'), T.board(540, 160, 'Culture', '🎭', '#9ece6a'),
+  T.table(60, 300, [['Term', 'Meaning', 'Where used'], ['', '', ''], ['', '', ''], ['', '', '']], { w: 540 }), T.todo(640, 160, 'Still to decide', ['Names of the main places', 'Who holds power', 'What is forbidden'], { w: 260 })]);
+add('scene-cards', 'Scene cards by chapter', 'Fiction', 'Every scene is a card: purpose, conflict and how it ends.', () => [
+  ...['Chapter 1', 'Chapter 2', 'Chapter 3', 'Chapter 4'].map((c, i) => T.col(60 + i * 290, 60, c, [{ type: 'note', color: i === 0 ? Y : null, content: { html: nt('Scene · place · time', 'Goal: <br>Conflict: <br>Outcome: ') } }], { w: 262 }))]);
+add('plot-timeline', 'Story timeline', 'Fiction', 'Keep dates, events and who knows what in order.', () => [
+  T.table(60, 60, [['When', 'What happens', 'Who is there', 'Who knows'], ['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 700 }), T.note(60, 330, nt('Continuity watch', 'Ages, seasons, travel time, injuries, objects that move.'), { w: 340, color: R })]);
+add('short-story', 'Short story planner', 'Fiction', 'Small enough to hold in one head: person, problem, turn, ending.', () => [
+  T.note(60, 60, nt('Person', 'Who? What do they want right now?'), { w: 260, color: Y }), T.note(340, 60, nt('Problem', 'What gets in the way?'), { w: 260, color: R }), T.note(620, 60, nt('Turn', 'The moment things cannot go back.'), { w: 260, color: P }),
+  T.note(60, 200, nt('Ending', 'What changes? End on an image, not a lesson.'), { w: 260, color: G }), T.todo(340, 200, 'Drafts', ['First pass, ugly and fast', 'Cut the first paragraph', 'Read aloud'], { w: 260 }), T.note(620, 200, nt('Opening lines to try', ''), { w: 260 })]);
+add('screenplay-outline', 'Screenplay outline', 'Fiction', 'Logline, three acts and a list of sequences.', () => [
+  T.note(60, 40, nt('Logline', 'A [hero] must [goal] before [stakes].'), { w: 540, color: Y }), ...['Act I', 'Act II', 'Act III'].map((a, i) => T.col(60 + i * 290, 150, a, stackNotes(['Sequence: what the audience learns', 'Sequence: what goes wrong'], [B, G, P][i]), { w: 262 })),
+  T.table(60, 480, [['Scene', 'INT/EXT', 'Place', 'Pages'], ['', '', '', ''], ['', '', '', '']], { w: 540 })]);
+add('series-bible', 'Series bible', 'Fiction', 'The facts that must stay true from book to book.', () => [
+  T.note(60, 60, nt('Series promise', 'What does a reader get every time?'), { w: 280, color: Y }), T.note(60, 190, nt('Big arc', 'Where is the whole series heading?'), { w: 280, color: B }),
+  T.table(380, 60, [['Book', 'Title', 'Main question', 'Status'], ['1', '', '', ''], ['2', '', '', ''], ['3', '', '', '']], { w: 520 }), T.board(380, 260, 'Characters', '🧑', '#f7768e'), T.board(500, 260, 'Places', '🗺️', '#7aa2f7'), T.board(620, 260, 'Timeline', '⏳', '#e0af68')]);
+add('magic-system', 'Rules & magic system', 'Fiction', 'Limits and costs make a power interesting.', () => [
+  T.note(60, 60, nt('What it can do', 'The headline power.'), { w: 250, color: G }), T.note(330, 60, nt('What it costs', 'Energy, time, a memory, a favour?'), { w: 250, color: R }), T.note(600, 60, nt('What it cannot do', 'The limits you will never break.'), { w: 250, color: B }),
+  T.table(60, 210, [['Who can use it', 'How they learned', 'Weak spot'], ['', '', ''], ['', '', '']], { w: 540 }), T.todo(640, 210, 'Test it', ['Does it solve the plot too easily?', 'Who would abuse it?', 'How do ordinary people cope?'], { w: 260 })]);
+add('location-sheet', 'Setting sheet', 'Fiction', 'Make a place feel real with senses, history and secrets.', () => [
+  T.image(60, 60, 260, 0.7), T.note(340, 60, nt('Sight · sound · smell', 'Three details only this place has.'), { w: 280, color: Y }), T.note(340, 190, nt('History', 'What happened here before the story?'), { w: 280, color: B }),
+  T.note(60, 270, nt('Who comes here', 'And why.'), { w: 260, color: G }), T.note(340, 320, nt('Secret', 'Something hidden that matters.'), { w: 280, color: P })]);
+add('mystery-board', 'Mystery clue board', 'Fiction', 'Suspects, clues and what the reader knows when.', () => [
+  ...['Suspect A', 'Suspect B', 'Suspect C'].map((s, i) => T.col(60 + i * 270, 60, s, stackNotes(['Motive', 'Alibi', 'Lie they tell'], [Y, B, P][i]), { w: 250 })),
+  T.table(60, 380, [['Clue', 'Planted in', 'Revealed in', 'Points to'], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], { w: 600 }), T.note(700, 60, nt('The truth', 'What really happened, in order.'), { w: 240, color: R })]);
+add('poem-workshop', 'Poem & lyric workshop', 'Fiction', 'Catch images, try lines and keep every draft.', () => [
+  T.note(60, 60, nt('Seed', 'The feeling or image you do not want to lose.'), { w: 260, color: Y }), T.col(340, 60, 'Lines to try', stackNotes(['A line', 'Another line'], B), { w: 260 }), T.col(620, 60, 'Drafts', [], { w: 260 }),
+  T.table(60, 200, [['Word', 'Rhymes / echoes'], ['', ''], ['', '']], { w: 260 })]);
+
+// ---- Nonfiction
+add('article-planner', 'Article planner', 'Nonfiction', 'Angle, outline and sources before you write a word.', () => [
+  T.note(60, 60, nt('Angle', 'Why this, why now, for whom?'), { w: 280, color: Y }), T.note(60, 190, nt('Hook', 'The first thing the reader should feel.'), { w: 280, color: B }),
+  T.col(380, 60, 'Outline', stackNotes(['Opening', 'Section one', 'Section two', 'Ending'], null), { w: 250 }), T.table(650, 60, [['Source', 'What it gives me', 'Link'], ['', '', ''], ['', '', '']], { w: 380 }), T.todo(60, 340, 'Before sending', ['Facts checked', 'Quotes approved', 'Headline options', 'Word count'], { w: 280 })]);
+add('essay-outline', 'Essay outline', 'Nonfiction', 'A thesis, the reasons behind it and the best objection.', () => [
+  T.note(60, 60, nt('Thesis', 'The claim, in one sentence.'), { w: 340, color: Y }), ...['Reason 1', 'Reason 2', 'Reason 3'].map((r, i) => T.col(60 + i * 260, 190, r, stackNotes(['Evidence or example'], [B, G, P][i]), { w: 240 })),
+  T.note(60, 450, nt('Strongest objection', 'And your answer to it.'), { w: 340, color: R }), T.note(420, 450, nt('Ending', 'What should the reader do or think next?'), { w: 340, color: G })]);
+add('nonfiction-book', 'Nonfiction book plan', 'Nonfiction', 'Promise, readers and a chapter-by-chapter map.', () => [
+  T.note(60, 60, nt('Promise', 'After reading, the reader can…'), { w: 280, color: Y }), T.note(60, 190, nt('Reader', 'Who they are and what they already know.'), { w: 280, color: B }),
+  T.table(380, 60, [['Ch.', 'Title', 'Big idea', 'Words'], ['1', '', '', ''], ['2', '', '', ''], ['3', '', '', ''], ['4', '', '', '']], { w: 560 }), T.board(60, 340, 'Research', '🔎', '#7dcfff'), T.board(180, 340, 'Interviews', '🎤', '#f7768e'), T.board(300, 340, 'Drafts', '✍️', '#9ece6a')]);
+add('research-board', 'Research board', 'Nonfiction', 'Questions, sources and quotes kept together.', () => [
+  T.col(60, 60, 'Questions', stackNotes(['What do I need to know?'], Y), { w: 250 }), T.col(330, 60, 'Quotes', stackNotes(['“Quote” — source, page'], B), { w: 250 }), T.col(600, 60, 'Facts to check', [], { w: 250, color: R }),
+  T.table(60, 380, [['Source', 'Type', 'Link', 'Trust (1–5)'], ['', '', '', ''], ['', '', '', '']], { w: 540 })]);
+add('interview-prep', 'Interview prep', 'Nonfiction', 'Questions, background and notes to capture on the day.', () => [
+  T.note(60, 60, nt('Who & why', 'What makes them the right person?'), { w: 260, color: Y }), T.todo(60, 190, 'Questions', ['Open: tell me about…', 'The story only they can tell', 'The hard one', 'What did I not ask?'], { w: 260 }),
+  T.note(350, 60, nt('Notes during', 'Moments, quotes and timestamps.'), { w: 320, color: B }), T.todo(350, 260, 'After', ['Transcribe', 'Send thanks', 'Check quotes with them'], { w: 320 })]);
+add('newsletter-planner', 'Newsletter planner', 'Nonfiction', 'Ideas to issues: plan, draft and send on a rhythm.', () => [
+  T.col(60, 60, 'Ideas', stackNotes(['Topic worth an email'], Y), { w: 240 }), T.col(320, 60, 'Drafting', [], { w: 240 }), T.col(580, 60, 'Scheduled', [], { w: 240 }), T.col(840, 60, 'Sent', [], { w: 240, color: G }),
+  T.todo(60, 400, 'Every issue', ['One idea, clearly', 'Subject line options', 'Read it aloud', 'Link check'], { w: 280 })]);
+add('memoir-map', 'Memoir memory map', 'Nonfiction', 'Collect the moments first; shape them later.', () => [
+  ...['Childhood', 'Teenage years', 'Turning points', 'Now'].map((c, i) => T.col(60 + i * 270, 60, c, stackNotes(['A memory: where, who, what you remember most'], [Y, B, P, G][i]), { w: 250 })),
+  T.note(60, 380, nt('The thread', 'What do these moments say together?'), { w: 340, color: R }), T.todo(420, 380, 'Check with others', ['Dates', 'Names', 'Permissions'], { w: 260 })]);
+
+// ---- Writing life
+add('idea-inbox', 'Idea inbox', 'Writing life', 'Catch sparks fast, then move the good ones forward.', () => [
+  T.col(60, 60, 'Sparks', stackNotes(['A line overheard', 'A what-if', 'An image'], Y), { w: 260 }), T.col(350, 60, 'Developing', [], { w: 260 }), T.col(640, 60, 'Ready to write', [], { w: 260, color: G }), T.col(930, 60, 'Parked', [], { w: 260, color: S }),
+  T.note(60, 420, nt('Rule of thumb', 'Write it down in under ten seconds. Sort it later.'), { w: 300, color: B })]);
+add('writing-goals', 'Writing goals & habits', 'Writing life', 'Set a rhythm, log your words and see the streak.', () => [
+  T.note(60, 60, nt('This season', 'What finished piece do I want at the end?'), { w: 300, color: Y }), T.table(60, 190, [['Day', 'Words', 'Minutes', 'Felt like'], ['Mon', '', '', ''], ['Tue', '', '', ''], ['Wed', '', '', ''], ['Thu', '', '', ''], ['Fri', '', '', '']], { w: 420 }),
+  T.todo(400, 60, 'Habits', ['Write before checking messages', 'Stop mid-sentence', 'Weekly review'], { w: 280 }), T.note(520, 190, nt('Wins', 'Anything that went well, however small.'), { w: 260, color: G })]);
+add('revision-plan', 'Revision plan', 'Writing life', 'Revise in passes: big picture first, polish last.', () => [
+  T.todo(60, 60, 'Pass 1 · Structure', ['Does the story work in one paragraph?', 'Cut or move scenes', 'Check the ending against the start'], { w: 280 }), T.todo(370, 60, 'Pass 2 · Scenes', ['Each scene has a purpose', 'Enter late, leave early', 'Sharpen conflict'], { w: 280 }),
+  T.todo(680, 60, 'Pass 3 · Lines', ['Cut filler words', 'Vary sentence length', 'Read aloud'], { w: 280 }), T.todo(60, 320, 'Pass 4 · Proof', ['Spelling and names', 'Dates and facts', 'Formatting'], { w: 280 }), T.note(370, 320, nt('Reader feedback', 'Paste comments here, then sort them into passes.'), { w: 280, color: Y })]);
+add('submission-tracker', 'Submission tracker', 'Writing life', 'Where every piece has gone, and what happened next.', () => [
+  T.table(60, 60, [['Piece', 'Sent to', 'Date', 'Status', 'Reply'], ['', '', '', 'Sent', ''], ['', '', '', '', ''], ['', '', '', '', '']], { w: 700 }), T.note(60, 280, nt('Query / cover letter', 'Hook · the piece · why you · a line about you.'), { w: 340, color: Y }), T.note(420, 280, nt('Synopsis', 'One page: the whole story, including the ending.'), { w: 340, color: B }),
+  T.todo(60, 460, 'Before sending', ['Follow their guidelines exactly', 'Proofread', 'Track it here'], { w: 340 })]);
+add('dialogue-bank', 'Dialogue & phrase bank', 'Writing life', 'Keep lines you hear, voices you like and words you love.', () => [
+  T.col(60, 60, 'Overheard', stackNotes(['“…”'], Y), { w: 260 }), T.col(350, 60, 'Character voices', stackNotes(['Name: how they talk'], B), { w: 260 }), T.col(640, 60, 'Words I love', stackNotes(['A word and where it fits'], G), { w: 260 })]);
+add('prompt-jar', 'Prompt jar', 'Writing life', 'Warm-ups for days when the page looks too white.', () => [
+  ...['Write the scene from the other person’s side.', 'Start with the last line.', 'A character finds something that is not theirs.', 'Describe a room using only sound.', 'Two people who cannot say what they mean.', 'What did they leave out of the letter?'].map((p, i) => T.note(60 + (i % 3) * 250, 60 + Math.floor(i / 3) * 150, nt(`Prompt ${i + 1}`, p), { w: 230, color: [Y, B, G, P, O, R][i] })),
+  T.todo(60, 380, 'Warm-up rules', ['Ten minutes, timer on', 'No deleting', 'Keep the best sentence'], { w: 260 })]);
 
 export const BUILTIN_TEMPLATES = L;

@@ -70,6 +70,14 @@ export function setupSettings(ctx) {
         row(t('set.minimap'), t('set.minimap.d'), toggle(store.prefs.minimap !== false, (v) => { pref('minimap', v); ctx.mm?.schedule(); }, t('set.minimap'))),
         row(t('set.sidebar'), t('set.sidebar.d'), toggle(!ctx.tree.drawerHidden(), (v) => (v ? ctx.tree.show() : ctx.tree.hide()), t('set.sidebar'))))];
     },
+    writing() {
+      const goal = h('input', { type: 'number', min: 0, max: 100000, step: 50, class: 'st-num', value: store.prefs.wordGoal || '', placeholder: '0', 'aria-label': t('set.goal') });
+      goal.addEventListener('change', () => { const v = Math.max(0, Math.min(100000, Math.round(Number(goal.value) || 0))); pref('wordGoal', v || null); });
+      return [group('', row(t('set.goal'), t('set.goal.d'), goal),
+        row(t('set.wc'), t('set.wc.d'), toggle(store.prefs.wordCounts !== false, (v) => { pref('wordCounts', v); ctx.view?.render?.(); }, t('set.wc'))),
+        row(t('wr.capture'), t('set.capture.d'), action(t('set.open'), closeThen(() => ctx.writer.openCapture()))),
+        row(t('set.compile'), t('set.compile.d'), action(t('wr.exportMd'), () => ctx.writer.downloadMd())))];
+    },
     language() {
       return [h('p', { class: 'st-d st-lead' }, t('set.lang.d')), h('div', { class: 'st-langs' }, ...LANGS.map((l) => h('button', { type: 'button', class: 'st-lang' + (l.code === getLang() ? ' on' : ''), 'aria-pressed': l.code === getLang() ? 'true' : 'false', onclick: () => setLang(l.code) }, h('span', {}, l.name), l.code === getLang() ? h('span', { class: 'st-check' }, '✓') : null)))];
     },
@@ -88,7 +96,7 @@ export function setupSettings(ctx) {
         h('section', { class: 'st-group' }, h('div', { class: 'st-card st-pad st-about' }, h('span', { class: 'logo' }), h('div', {}, h('div', { class: 'st-t' }, t('set.about')), h('div', { class: 'st-d' }, t('set.about.d')))))];
     },
   };
-  const ORDER = ['account', 'appearance', 'canvas', 'language', 'data', 'about'];
+  const ORDER = ['account', 'appearance', 'canvas', 'writing', 'language', 'data', 'about'];
 
   function render() {
     if (!dlg) return;

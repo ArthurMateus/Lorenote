@@ -12,6 +12,7 @@ import { setupTree } from './tree.js';
 import { t, getLang, setLang, langName, LANGS } from './i18n.js';
 import { openDatabase } from './database.js';
 import { setupSettings } from './settings.js';
+import { setupWriter } from './writer.js';
 
 export async function startApp({ backend = null, user = null } = {}) {
   const $ = (s) => document.querySelector(s);
@@ -147,7 +148,10 @@ export async function startApp({ backend = null, user = null } = {}) {
   const tree = setupTree(view, store);
   const mm = setupMinimap(view, store);
   const present = setupPresent(view, store, toast);
-  const settings = setupSettings({ store, user, tpl, tree, mm, toast, exportJson, importJson, importLocal, localCount, installItem, signOut, signIn, canSignIn: !!window.corkboardAuth });
+  const writer = setupWriter({ store, view, toast, openSettings: (s) => settings.open(s) });
+  view.onFocusNote = (id) => writer.focus(id); view.onCopyText = (id) => writer.copyText(id); view.onExportMd = (id) => writer.downloadMd(id);
+  $('#btn-capture').onclick = () => writer.openCapture();
+  const settings = setupSettings({ writer, view,  store, user, tpl, tree, mm, toast, exportJson, importJson, importLocal, localCount, installItem, signOut, signIn, canSignIn: !!window.corkboardAuth });
   view.onPresent = () => present.start();
   view.onPresenting = (on) => { if (on) tree.hide(); };
   $('#btn-present').onclick = () => present.start();
@@ -245,7 +249,7 @@ export async function startApp({ backend = null, user = null } = {}) {
     const here = () => { const r = dom.viewport.getBoundingClientRect(); const p = view.toWorld(r.left + r.width / 2, r.top + r.height / 2); return { parentId: view.boardId, section: 'canvas', x: p.x - 110, y: p.y - 60 }; };
     const make = (type) => () => { const el = inter.create(type, here()); view.render(); if (el) view.select([el.id]); };
     const COMMANDS = [
-      [t('cmd.note'), make('note')], [t('cmd.todo'), make('todo')], [t('cmd.database'), make('database')], [t('cmd.table'), make('table')], [t('cmd.column'), make('column')], [t('cmd.board'), make('board')],
+      [t('cmd.note'), make('note')], [t('cmd.todo'), make('todo')], [t('cmd.capture'), () => writer.openCapture()], [t('cmd.focus'), () => { const sel = [...view.selection].map((id) => store.live(id)).find((e) => e?.type === 'note'); writer.focus(sel?.id); }], [t('cmd.copyBoard'), () => writer.copyText(view.boardId)], [t('cmd.exportBoard'), () => writer.downloadMd(view.boardId)], [t('cmd.database'), make('database')], [t('cmd.table'), make('table')], [t('cmd.column'), make('column')], [t('cmd.board'), make('board')],
       [t('cmd.theme'), () => $('#btn-theme').click()], [t('cmd.present'), () => $('#btn-present').click()], [t('cmd.fit'), () => $('#btn-fit').click()],
       [t('cmd.templates'), () => $('#btn-templates').click()], [t('cmd.boards'), () => $('#btn-tree').click()], [t('cmd.trash'), () => $('#btn-trash').click()], [t('cmd.help'), () => $('#dlg-help').showModal()],
     ].filter(([name]) => !q || name.toLowerCase().includes(q));
