@@ -5,6 +5,10 @@ import { isContainer } from './model.js';
 export function setupTree(view, store) {
   const drawer = document.querySelector('#tree-drawer'), list = document.querySelector('#tree-list');
   const KEY = 'corkboard.treeOpen'; let open = new Set(); try { open = new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { /* ignore */ }
+  const FAV = 'lorenote.favorites'; let favs = []; try { favs = JSON.parse(localStorage.getItem(FAV) || '[]'); } catch { /* ignore */ }
+  const saveFavs = () => { try { localStorage.setItem(FAV, JSON.stringify(favs)); } catch { /* ignore */ } };
+  const toggleFav = (id) => { favs = favs.includes(id) ? favs.filter((x) => x !== id) : [...favs, id]; saveFavs(); render(); view.onFavChange?.(); };
+  const isFav = (id) => favs.includes(id);
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify([...open])); } catch { /* ignore */ } };
 
   /** boards whose nearest board ancestor is `boardId` (looking through columns and lists) */
@@ -23,7 +27,8 @@ export function setupTree(view, store) {
     const ti = document.createElement('span'); ti.className = 'ti'; ti.textContent = board.id === store.rootId ? '🏠' : (board.content.icon || '📁');
     const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = board.content.title || 'Untitled';
     const tc = document.createElement('span'); tc.className = 'tc'; tc.textContent = cardCount(board.id) || '';
-    el.append(tw, ti, tt, tc); el.onclick = () => { view.onOpen?.(board.id); if (matchMedia('(max-width: 760px)').matches) hide(); };
+    const star = document.createElement('button'); star.type = 'button'; star.className = 'tstar' + (isFav(board.id) ? ' on' : ''); star.textContent = isFav(board.id) ? '★' : '☆'; star.title = 'Favourite'; star.setAttribute('aria-label', 'Toggle favourite'); star.onclick = (e) => { e.stopPropagation(); toggleFav(board.id); };
+    el.append(tw, ti, tt, tc, star); el.onclick = () => { view.onOpen?.(board.id); if (matchMedia('(max-width: 760px)').matches) hide(); };
     const frag = [el];
     if (kids.length && isOpen) for (const k of kids) frag.push(...row(k, depth + 1, currentPath));
     return frag;
@@ -32,12 +37,23 @@ export function setupTree(view, store) {
     if (drawer.hidden) return;
     const path = new Set(store.path(view.boardId).filter((e) => e.type === 'board').map((e) => e.id));
     for (const id of path) if (id !== view.boardId) open.add(id);      // keep the way to the current board visible
-    open.add(store.rootId); const root = store.get(store.rootId); list.replaceChildren(...row(root, 0, path));
+    open.add(store.rootId); const root = store.get(store.rootId);
+    favs = favs.filter((id) => store.get(id) && !store.get(id).trashed);
+    const head = (txt) => { const d = document.createElement('div'); d.className = 'tsec'; d.textContent = txt; return d; };
+    const search = document.createElement('button'); search.type = 'button'; search.className = 'tsearch'; search.innerHTML = icon('search') + '<span>Search or run a command</span><kbd>Ctrl K</kbd>'; search.onclick = () => document.querySelector('#btn-search').click();
+    const favRows = favs.map((id) => store.get(id)).filter(Boolean).map((b) => { const el = row(b, 0, path)[0]; return el; });
+    list.replaceChildren(search, ...(favRows.length ? [head('Favourites'), ...favRows] : []), head('Boards'), ...row(root, 0, path));
     const cur = list.querySelector('.tn.on'); cur?.scrollIntoView?.({ block: 'nearest' });
   }
-  function show() { drawer.hidden = false; open.add(store.rootId); render(); } function hide() { drawer.hidden = true; }
+  const WIDE = matchMedia('(min-width: 1100px)'); const PIN = 'lorenote.sidebar';
+  const pinned = () => { try { return localStorage.getItem(PIN) !== '0'; } catch { return true; } };
+  const dock = () => document.body.classList.toggle('side-docked', !drawer.hidden && WIDE.matches);
+  function show() { drawer.hidden = false; open.add(store.rootId); try { localStorage.setItem(PIN, '1'); } catch { /* ignore */ } dock(); render(); }
+  function hide() { drawer.hidden = true; try { localStorage.setItem(PIN, '0'); } catch { /* ignore */ } dock(); }
+  WIDE.addEventListener('change', dock);
+  if (WIDE.matches && pinned()) setTimeout(show, 0);
   const toggle = () => (drawer.hidden ? show() : hide());
   document.querySelector('#btn-tree').onclick = toggle; document.querySelector('#tree-close').onclick = hide;
   store.subscribe((i) => { if (!drawer.hidden && (i.patches.length || i.reset)) render(); }); window.addEventListener('hashchange', () => setTimeout(render, 0));
-  return { show, hide, toggle, render, childBoards };
+  return { show, hide, toggle, render, childBoards, isFav, toggleFav };
 }

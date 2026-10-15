@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 const PORT = process.env.PORT || 9223;
 const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-const page = list.find((t) => t.type === 'page' && t.url.startsWith('https://app.milanote.com'));
+const page = list.find((t) => t.type === 'page' && t.url.startsWith(process.env.URLPREFIX || 'https://app.milanote.com'));
 if (!page) { console.error('no milanote page'); process.exit(2); }
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));
