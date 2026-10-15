@@ -1,5 +1,6 @@
 // Board view: incremental DOM rendering of elements, connector lines, selection and the context bar.
 import { icon } from './icons.js';
+import { t, getLang } from './i18n.js';
 import * as layout from './layout.js';
 import { applyTheme } from './theme.js';
 import { COLORS, BOARD_COLORS, BOARD_ICONS, TYPE_LABEL, isContainer, makeElement, sanitizeHtml, hostOf, normalizeUrl } from './model.js';
@@ -145,7 +146,7 @@ export class View {
     const rec = { node, el: null, body: null, update() {} };
     const builder = BUILDERS[e.type];
     builder(rec, e, this);
-    if (RESIZABLE.has(e.type)) node.append(h('div', { class: 'rz', 'data-nodrag': '', title: 'Resize' }));
+    if (RESIZABLE.has(e.type)) node.append(h('div', { class: 'rz', 'data-nodrag': '', title: t('card.resize') }));
     return rec;
   }
 
@@ -248,11 +249,11 @@ export class View {
     const edit = (fn, label = 'Edit') => store.commit(els.map((e) => ({ id: e.id, after: fn(e) })), { label });
 
     if (one && this.drawing === one.id) {
-      for (const c of ['#1f2430', '#e5484d', '#2f7de1', '#2f9e6a', '#f2a900']) out.push(h('button', { class: 'swatch' + (this.pen.color === c ? ' on' : ''), style: `background:${c}`, title: 'Pen colour', onclick: () => { this.pen.color = c; this.updateContextBar(); } }));
-      for (const w of [2, 4, 8]) out.push(btn('●', `Pen ${w}`, () => { this.pen.w = w; this.updateContextBar(); }, this.pen.w === w ? 'on' : ''));
-      out.push(sep(), btn('Undo stroke', 'Remove last stroke', () => edit((e) => ({ ...e, content: { ...e.content, strokes: e.content.strokes.slice(0, -1) } }), 'Undo stroke')),
-        btn('Clear', 'Clear sketch', () => edit((e) => ({ ...e, content: { ...e.content, strokes: [] } }), 'Clear sketch')),
-        btn('Done', 'Finish drawing', () => { this.drawing = null; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'));
+      for (const c of ['#1f2430', '#e5484d', '#2f7de1', '#2f9e6a', '#f2a900']) out.push(h('button', { class: 'swatch' + (this.pen.color === c ? ' on' : ''), style: `background:${c}`, title: t('ctx.penColor'), onclick: () => { this.pen.color = c; this.updateContextBar(); } }));
+      for (const w of [2, 4, 8]) out.push(btn('●', t('ctx.pen', { n: w }), () => { this.pen.w = w; this.updateContextBar(); }, this.pen.w === w ? 'on' : ''));
+      out.push(sep(), btn(t('ctx.undoStroke'), t('ctx.undoStrokeTip'), () => edit((e) => ({ ...e, content: { ...e.content, strokes: e.content.strokes.slice(0, -1) } }), 'Undo stroke')),
+        btn(t('ctx.clear'), t('ctx.clearTip'), () => edit((e) => ({ ...e, content: { ...e.content, strokes: [] } }), 'Clear sketch')),
+        btn(t('ctx.done'), t('ctx.doneTip'), () => { this.drawing = null; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'));
       return out;
     }
 
@@ -260,54 +261,54 @@ export class View {
     const free = els.filter((e) => e.type !== 'line' && e.section === 'canvas');
     if (free.length >= 2) {
       const L = this.layout;
-      for (const [name, mode, t] of [['align-left', 'left', 'Align left edges'], ['align-center', 'center', 'Align centres horizontally'], ['align-right', 'right', 'Align right edges'], ['align-top', 'top', 'Align top edges'], ['align-middle', 'middle', 'Align centres vertically'], ['align-bottom', 'bottom', 'Align bottom edges']]) out.push(ibtn(name, t, () => L.align(store, this, mode)));
-      if (free.length >= 3) out.push(ibtn('dist-h', 'Distribute horizontally (equal gaps)', () => L.distribute(store, this, 'h')), ibtn('dist-v', 'Distribute vertically (equal gaps)', () => L.distribute(store, this, 'v')));
+      for (const [name, mode, tip] of [['align-left', 'left', t('ctx.alignLeft')], ['align-center', 'center', t('ctx.alignCenter')], ['align-right', 'right', t('ctx.alignRight')], ['align-top', 'top', t('ctx.alignTop')], ['align-middle', 'middle', t('ctx.alignMiddle')], ['align-bottom', 'bottom', t('ctx.alignBottom')]]) out.push(ibtn(name, tip, () => L.align(store, this, mode)));
+      if (free.length >= 3) out.push(ibtn('dist-h', t('ctx.distH'), () => L.distribute(store, this, 'h')), ibtn('dist-v', t('ctx.distV'), () => L.distribute(store, this, 'v')));
       out.push(sep());
     }
 
     if (one?.type === 'note') {
-      for (const [lbl, cmd, t] of [['B', 'bold', 'Bold'], ['I', 'italic', 'Italic'], ['U', 'underline', 'Underline'], ['S', 'strikeThrough', 'Strikethrough'], ['•', 'insertUnorderedList', 'Bullets'], ['1.', 'insertOrderedList', 'Numbers']]) {
-        out.push(btn(lbl, t, () => { this.focusEdit(one.id); document.execCommand(cmd); }, 'fmt'));
+      for (const [lbl, cmd, tip] of [['B', 'bold', t('ctx.bold')], ['I', 'italic', t('ctx.italic')], ['U', 'underline', t('ctx.underline')], ['S', 'strikeThrough', t('ctx.strike')], ['•', 'insertUnorderedList', t('ctx.bullets')], ['1.', 'insertOrderedList', t('ctx.numbers')]]) {
+        out.push(btn(lbl, tip, () => { this.focusEdit(one.id); document.execCommand(cmd); }, 'fmt'));
       }
       out.push(sep());
     }
     if (one?.type === 'table') {
       const mut = (fn, label) => edit((e) => { const rows = e.content.rows.map((r) => [...r]); fn(rows); return { ...e, content: { ...e.content, rows } }; }, label);
-      out.push(btn('+ Row', 'Add row', () => mut((r) => r.push(r[0].map(() => '')), 'Add row')), btn('– Row', 'Remove last row', () => mut((r) => { if (r.length > 1) r.pop(); }, 'Remove row')),
-        btn('+ Col', 'Add column', () => mut((r) => r.forEach((x) => x.push('')), 'Add column')), btn('– Col', 'Remove last column', () => mut((r) => { if (r[0].length > 1) r.forEach((x) => x.pop()); }, 'Remove column')),
-        btn(one.content.header ? 'Header ✓' : 'Header', 'Toggle header row', () => edit((e) => ({ ...e, content: { ...e.content, header: !e.content.header } }), 'Toggle header')), sep());
+      out.push(btn(t('ctx.addRow'), t('ctx.addRowTip'), () => mut((r) => r.push(r[0].map(() => '')), 'Add row')), btn(t('ctx.delRow'), t('ctx.delRowTip'), () => mut((r) => { if (r.length > 1) r.pop(); }, 'Remove row')),
+        btn(t('ctx.addCol'), t('ctx.addColTip'), () => mut((r) => r.forEach((x) => x.push('')), 'Add column')), btn(t('ctx.delCol'), t('ctx.delColTip'), () => mut((r) => { if (r[0].length > 1) r.forEach((x) => x.pop()); }, 'Remove column')),
+        btn(one.content.header ? t('ctx.headerOn') : t('ctx.headerOff'), t('ctx.headerTip'), () => edit((e) => ({ ...e, content: { ...e.content, header: !e.content.header } }), 'Toggle header')), sep());
     }
-    if (one?.type === 'todo') out.push(btn(one.content.showTitle ? 'Hide title' : 'Add title', 'Toggle list title', () => edit((e) => ({ ...e, content: { ...e.content, showTitle: !e.content.showTitle } }), 'Toggle title')), btn('+ Task', 'Add a task', () => this.onAddTask?.(one.id)), sep());
-    if (one?.type === 'sketch') out.push(btn('Draw', 'Draw on this sketch', () => { this.drawing = one.id; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'), sep());
+    if (one?.type === 'todo') out.push(btn(one.content.showTitle ? t('ctx.hideTitle') : t('ctx.addTitle'), t('ctx.titleTip'), () => edit((e) => ({ ...e, content: { ...e.content, showTitle: !e.content.showTitle } }), 'Toggle title')), btn(t('ctx.addTaskShort'), t('ctx.addTaskTip'), () => this.onAddTask?.(one.id)), sep());
+    if (one?.type === 'sketch') out.push(btn(t('ctx.draw'), t('ctx.drawTip'), () => { this.drawing = one.id; this.updateSelectionClasses(); this.updateContextBar(); }, 'primary'), sep());
     if (one?.type === 'board') {
-      out.push(btn('Open', 'Open board', () => this.onOpen?.(one.id)), btn('Rename', 'Rename board', () => this.focusEdit(one.id)));
-      for (const ic of BOARD_ICONS.slice(0, 6)) out.push(btn(ic, 'Icon', () => edit((e) => ({ ...e, content: { ...e.content, icon: ic } }), 'Board icon')));
+      out.push(btn(t('ctx.open'), t('ctx.openTip'), () => this.onOpen?.(one.id)), btn(t('ctx.rename'), t('ctx.renameTip'), () => this.focusEdit(one.id)));
+      for (const ic of BOARD_ICONS.slice(0, 6)) out.push(btn(ic, t('ctx.icon'), () => edit((e) => ({ ...e, content: { ...e.content, icon: ic } }), 'Board icon')));
       out.push(sep());
-      for (const c of BOARD_COLORS) out.push(h('button', { class: 'swatch' + (one.content.tint === c ? ' on' : ''), style: `background:${c}`, title: 'Board colour', 'data-nodrag': '', onmousedown: (ev) => ev.preventDefault(), onclick: () => edit((e) => ({ ...e, content: { ...e.content, tint: c } }), 'Board colour') }));
+      for (const c of BOARD_COLORS) out.push(h('button', { class: 'swatch' + (one.content.tint === c ? ' on' : ''), style: `background:${c}`, title: t('ctx.boardColor'), 'data-nodrag': '', onmousedown: (ev) => ev.preventDefault(), onclick: () => edit((e) => ({ ...e, content: { ...e.content, tint: c } }), 'Board colour') }));
       out.push(sep());
     } else if (els.every((e) => e.type !== 'line' && e.type !== 'task')) {
-      for (const c of COLORS) out.push(h('button', { class: 'swatch' + ((one ? one.color : null) === c ? ' on' : ''), style: c ? `background:${c}` : '', title: c ? 'Card colour' : 'No colour', 'data-nodrag': '', onmousedown: (ev) => ev.preventDefault(), onclick: () => edit((e) => ({ ...e, color: c }), 'Card colour') }, c ? '' : '∅'));
+      for (const c of COLORS) out.push(h('button', { class: 'swatch' + ((one ? one.color : null) === c ? ' on' : ''), style: c ? `background:${c}` : '', title: c ? t('ctx.cardColor') : t('ctx.noColor'), 'data-nodrag': '', onmousedown: (ev) => ev.preventDefault(), onclick: () => edit((e) => ({ ...e, color: c }), 'Card colour') }, c ? '' : '∅'));
       out.push(sep());
     }
     if (one?.type === 'line') {
-      out.push(btn(one.content.arrow ? 'Arrow ✓' : 'Arrow', 'Toggle arrowhead', () => edit((e) => ({ ...e, content: { ...e.content, arrow: !e.content.arrow } }), 'Line arrow')),
-        btn(one.content.dashed ? 'Dashed ✓' : 'Dashed', 'Toggle dashes', () => edit((e) => ({ ...e, content: { ...e.content, dashed: !e.content.dashed } }), 'Line dash')),
-        btn('Thicker', 'Increase weight', () => edit((e) => ({ ...e, content: { ...e.content, weight: Math.min(8, e.content.weight + 1) } }), 'Line weight')),
-        btn('Thinner', 'Decrease weight', () => edit((e) => ({ ...e, content: { ...e.content, weight: Math.max(1, e.content.weight - 1) } }), 'Line weight')));
-      for (const c of ['#1f2430', '#e5484d', '#2f7de1', '#2f9e6a']) out.push(h('button', { class: 'swatch', style: `background:${c}`, title: 'Line colour', 'data-nodrag': '', onclick: () => edit((e) => ({ ...e, color: c }), 'Line colour') }));
+      out.push(btn(one.content.arrow ? t('ctx.arrowOn') : t('ctx.arrowOff'), t('ctx.arrowTip'), () => edit((e) => ({ ...e, content: { ...e.content, arrow: !e.content.arrow } }), 'Line arrow')),
+        btn(one.content.dashed ? t('ctx.dashedOn') : t('ctx.dashedOff'), t('ctx.dashedTip'), () => edit((e) => ({ ...e, content: { ...e.content, dashed: !e.content.dashed } }), 'Line dash')),
+        btn(t('ctx.thicker'), t('ctx.thickerTip'), () => edit((e) => ({ ...e, content: { ...e.content, weight: Math.min(8, e.content.weight + 1) } }), 'Line weight')),
+        btn(t('ctx.thinner'), t('ctx.thinnerTip'), () => edit((e) => ({ ...e, content: { ...e.content, weight: Math.max(1, e.content.weight - 1) } }), 'Line weight')));
+      for (const c of ['#1f2430', '#e5484d', '#2f7de1', '#2f9e6a']) out.push(h('button', { class: 'swatch', style: `background:${c}`, title: t('ctx.lineColor'), 'data-nodrag': '', onclick: () => edit((e) => ({ ...e, color: c }), 'Line colour') }));
       out.push(sep());
     }
-    if (one?.type === 'link' && one.content.url) out.push(btn('Refresh preview', 'Fetch the title and image again', () => this.onLinkPreview?.(one.id, one.content.url, true)), sep());
-    if (one?.type === 'image') out.push(btn(one.content.src || one.content.path ? 'Replace' : 'Choose image', 'Pick an image file', () => this.onReplaceImage?.(one.id)), sep());
+    if (one?.type === 'link' && one.content.url) out.push(btn(t('ctx.refresh'), t('ctx.refreshTip'), () => this.onLinkPreview?.(one.id, one.content.url, true)), sep());
+    if (one?.type === 'image') out.push(btn(one.content.src || one.content.path ? t('ctx.replace') : t('ctx.chooseImage'), t('ctx.imageTip'), () => this.onReplaceImage?.(one.id)), sep());
 
     // ---- arrange: stacking order and lock
     const cards = els.filter((e) => e.type !== 'line' && e.type !== 'task');
     if (cards.length) {
       const L = this.layout; const allLocked = cards.every((e) => e.locked);
-      if (cards.some((e) => e.section === 'canvas')) out.push(ibtn('front', 'Bring to front ( ] )', () => L.stack(store, this, 'front')), ibtn('back', 'Send to back ( [ )', () => L.stack(store, this, 'back')));
-      out.push(ibtn(allLocked ? 'unlock' : 'lock', allLocked ? 'Unlock position (Ctrl+L)' : 'Lock position (Ctrl+L)', () => L.toggleLock(store, this), allLocked ? 'on' : ''), sep());
+      if (cards.some((e) => e.section === 'canvas')) out.push(ibtn('front', t('ctx.front'), () => L.stack(store, this, 'front')), ibtn('back', t('ctx.back'), () => L.stack(store, this, 'back')));
+      out.push(ibtn(allLocked ? 'unlock' : 'lock', allLocked ? t('ctx.unlock') : t('ctx.lock'), () => L.toggleLock(store, this), allLocked ? 'on' : ''), sep());
     }
-    out.push(ibtn('duplicate', 'Duplicate (Ctrl+D)', () => this.onDuplicate?.()), ibtn('trash', 'Move to trash (Del)', () => this.onDelete?.(), 'danger'));
+    out.push(ibtn('duplicate', t('ctx.duplicate'), () => this.onDuplicate?.()), ibtn('trash', t('ctx.trash'), () => this.onDelete?.(), 'danger'));
     return out;
   }
 }
@@ -331,7 +332,7 @@ const patchContent = (view, id, patch, label, merge) => {
 
 const BUILDERS = {
   note(rec, e, view) {
-    const ed = h('div', { class: 'note-text', 'data-edit': 'true', 'data-placeholder': 'Write something…', spellcheck: 'false' });
+    const ed = h('div', { class: 'note-text', 'data-edit': 'true', 'data-placeholder': t('card.notePlaceholder'), spellcheck: 'false' });
     ed.addEventListener('dblclick', () => { ed.contentEditable = 'true'; ed.focus(); });
     ed.addEventListener('blur', () => {
       ed.contentEditable = 'false';
@@ -346,8 +347,8 @@ const BUILDERS = {
 
   task(rec, e, view) {
     const cb = h('input', { type: 'checkbox', class: 'task-cb', 'data-nodrag': '' });
-    const text = h('div', { class: 'task-text', contenteditable: 'plaintext-only', 'data-edit': 'plaintext-only', 'data-placeholder': 'Add a task…', spellcheck: 'false' });
-    const grip = h('span', { class: 'grip', title: 'Drag to reorder' }, '⋮⋮');
+    const text = h('div', { class: 'task-text', contenteditable: 'plaintext-only', 'data-edit': 'plaintext-only', 'data-placeholder': t('card.taskPlaceholder'), spellcheck: 'false' });
+    const grip = h('span', { class: 'grip', title: t('card.reorder') }, '⋮⋮');
     cb.addEventListener('change', () => patchContent(view, e.id, { done: cb.checked }, 'Toggle task'));
     text.addEventListener('blur', () => { const cur = view.store.live(e.id); if (cur && cur.content.text !== text.textContent) patchContent(view, e.id, { text: text.textContent }, 'Edit task'); });
     text.addEventListener('keydown', (ev) => {
@@ -360,11 +361,11 @@ const BUILDERS = {
   },
 
   todo(rec, e, view) {
-    const title = h('input', { class: 'list-title', placeholder: 'List title', 'data-edit': 'true', 'data-nodrag': '' });
+    const title = h('input', { class: 'list-title', placeholder: t('card.listTitle'), 'data-edit': 'true', 'data-nodrag': '' });
     title.addEventListener('change', () => patchContent(view, e.id, { title: title.value }, 'Rename list'));
     title.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') title.blur(); });
     const body = h('div', { class: 'tasks', 'data-drop': e.id });
-    const add = h('button', { class: 'add-task', 'data-nodrag': '', onclick: () => view.onAddTask?.(e.id) }, '+ Add task');
+    const add = h('button', { class: 'add-task', 'data-nodrag': '', onclick: () => view.onAddTask?.(e.id) }, t('card.addTask'));
     const progress = h('div', { class: 'progress' }, h('i'));
     rec.node.append(title, progress, body, add); rec.body = body;
     rec.update = (el) => { title.hidden = !el.content.showTitle; if (document.activeElement !== title) title.value = el.content.title; };
@@ -372,36 +373,36 @@ const BUILDERS = {
   },
 
   column(rec, e, view) {
-    const title = h('input', { class: 'col-title', placeholder: 'Column title', 'data-edit': 'true', 'data-nodrag': '' });
+    const title = h('input', { class: 'col-title', placeholder: t('card.columnTitle'), 'data-edit': 'true', 'data-nodrag': '' });
     title.addEventListener('change', () => patchContent(view, e.id, { title: title.value }, 'Rename column'));
     title.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') title.blur(); });
     const count = h('div', { class: 'col-count' });
     const body = h('div', { class: 'col-body', 'data-drop': e.id });
     rec.node.append(h('div', { class: 'col-head' }, title, count), body); rec.body = body;
     rec.update = (el) => { if (document.activeElement !== title) title.value = el.content.title; };
-    rec.count = () => { const n = view.store.children(e.id, 'stack').length; count.textContent = n === 1 ? '1 card' : `${n} cards`; };
+    rec.count = () => { const n = view.store.children(e.id, 'stack').length; count.textContent = t('card.count', { n }); };
   },
 
   board(rec, e, view) {
     const icon = h('div', { class: 'board-icon' });
     const label = h('div', { class: 'board-title', 'data-edit': 'plaintext-only', spellcheck: 'false' });
     const count = h('div', { class: 'board-count' });
-    label.addEventListener('blur', () => { label.contentEditable = 'false'; const t = label.textContent.trim() || 'Untitled'; const cur = view.store.live(e.id); if (cur && cur.content.title !== t) patchContent(view, e.id, { title: t }, 'Rename board'); });
+    label.addEventListener('blur', () => { label.contentEditable = 'false'; const t = label.textContent.trim() || t('common.untitled'); const cur = view.store.live(e.id); if (cur && cur.content.title !== t) patchContent(view, e.id, { title: t }, 'Rename board'); });
     label.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); label.blur(); } });
     rec.node.append(icon, label, count); rec.node.dataset.drop = e.id;
     rec.update = (el) => { icon.textContent = el.content.icon; icon.style.background = (el.content.tint || '#7aa2f7') + '33'; icon.style.borderColor = el.content.tint || '#7aa2f7'; if (document.activeElement !== label) label.textContent = el.content.title; };
-    rec.count = () => { const n = view.store.descendants(e.id).filter((x) => x.type !== 'line' && x.type !== 'task').length; count.textContent = n === 1 ? '1 card' : `${n} cards`; };
+    rec.count = () => { const n = view.store.descendants(e.id).filter((x) => x.type !== 'line' && x.type !== 'task').length; count.textContent = t('card.count', { n }); };
     rec.count();
   },
 
   link(rec, e, view) {
-    const input = h('input', { class: 'link-input', placeholder: 'Paste a link and press Enter…', 'data-edit': 'true', 'data-nodrag': '' });
+    const input = h('input', { class: 'link-input', placeholder: t('card.linkPlaceholder'), 'data-edit': 'true', 'data-nodrag': '' });
     const img = h('img', { class: 'link-img', alt: '', referrerpolicy: 'no-referrer', loading: 'lazy', draggable: 'false', hidden: true });
     img.addEventListener('error', () => { img.hidden = true; });
     const title = h('div', { class: 'link-title', 'data-edit': 'plaintext-only', spellcheck: 'false' });
     const desc = h('div', { class: 'link-desc' });
     const host = h('div', { class: 'link-host' });
-    const open = h('a', { class: 'link-open', target: '_blank', rel: 'noopener noreferrer', 'data-nodrag': '' }, 'Open ↗');
+    const open = h('a', { class: 'link-open', target: '_blank', rel: 'noopener noreferrer', 'data-nodrag': '' }, t('card.linkOpen'));
     input.addEventListener('keydown', (ev) => {
       ev.stopPropagation();
       if (ev.key === 'Enter') { const url = normalizeUrl(input.value); if (url) { patchContent(view, e.id, { url, title: hostOf(url), description: '', image: '' }, 'Add link'); view.onLinkPreview?.(e.id, url); } }
@@ -423,17 +424,17 @@ const BUILDERS = {
 
   comment(rec, e, view) {
     const list = h('div', { class: 'cm-list' });
-    const input = h('input', { class: 'cm-input', placeholder: 'Write a comment…', 'data-edit': 'true', 'data-nodrag': '' });
-    const send = h('button', { class: 'cm-send', 'data-nodrag': '', onclick: () => submit() }, 'Send');
+    const input = h('input', { class: 'cm-input', placeholder: t('card.commentPlaceholder'), 'data-edit': 'true', 'data-nodrag': '' });
+    const send = h('button', { class: 'cm-send', 'data-nodrag': '', onclick: () => submit() }, t('card.send'));
     const submit = () => {
       const text = input.value.trim(); if (!text) return;
       const cur = view.store.live(e.id); input.value = '';
-      patchContent(view, e.id, { thread: [...cur.content.thread, { id: crypto.randomUUID().slice(0, 8), author: 'You', text, time: Date.now() }] }, 'Add comment');
+      patchContent(view, e.id, { thread: [...cur.content.thread, { id: crypto.randomUUID().slice(0, 8), author: t('comment.you'), text, time: Date.now() }] }, 'Add comment');
     };
     input.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') submit(); });
     rec.node.append(list, h('div', { class: 'cm-row' }, input, send));
     rec.update = (el) => {
-      list.replaceChildren(...el.content.thread.map((m) => h('div', { class: 'cm' }, h('div', { class: 'cm-meta' }, m.author, ' · ', new Date(m.time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })), h('div', { class: 'cm-text' }, m.text))));
+      list.replaceChildren(...el.content.thread.map((m) => h('div', { class: 'cm' }, h('div', { class: 'cm-meta' }, m.author, ' · ', new Date(m.time).toLocaleString(getLang(), { dateStyle: 'short', timeStyle: 'short' })), h('div', { class: 'cm-text' }, m.text))));
       list.hidden = !el.content.thread.length;
     };
   },
@@ -464,32 +465,32 @@ const BUILDERS = {
 
   image(rec, e, view) {
     const img = h('img', { draggable: 'false', alt: '' });
-    const phLabel = h('span', {}, 'Double-click to add an image');
-    const ph = h('div', { class: 'img-ph', 'data-nodrag': '', title: 'Double-click to choose an image', ondblclick: () => view.onReplaceImage?.(e.id) }, h('span', { class: 'img-ph-ico' }, '🖼'), phLabel);
+    const phLabel = h('span', {}, t('card.imageAdd'));
+    const ph = h('div', { class: 'img-ph', 'data-nodrag': '', title: t('card.imagePick'), ondblclick: () => view.onReplaceImage?.(e.id) }, h('span', { class: 'img-ph-ico' }, '🖼'), phLabel);
     rec.node.append(img, ph); let shownPath = null;
     rec.update = (el) => {
       const c = el.content;
       if (c.path && view.files) {
-        img.hidden = true; ph.hidden = false; phLabel.textContent = 'Loading image…';
+        img.hidden = true; ph.hidden = false; phLabel.textContent = t('card.imageLoading');
         if (shownPath !== c.path) {
           shownPath = c.path; const want = c.path;
-          view.files.objectUrl(want).then((u) => { if (shownPath === want) { img.src = u; img.hidden = false; ph.hidden = true; } }).catch(() => { if (shownPath === want) phLabel.textContent = 'Image unavailable right now'; });
+          view.files.objectUrl(want).then((u) => { if (shownPath === want) { img.src = u; img.hidden = false; ph.hidden = true; } }).catch(() => { if (shownPath === want) phLabel.textContent = t('card.imageUnavailable'); });
         } else if (img.getAttribute('src')) { img.hidden = false; ph.hidden = true; }
       } else if (c.src) {
         shownPath = null; img.hidden = false; ph.hidden = true; if (img.getAttribute('src') !== c.src) img.src = c.src;
-      } else { shownPath = null; img.hidden = true; ph.hidden = false; phLabel.textContent = 'Double-click to add an image'; img.removeAttribute('src'); }
+      } else { shownPath = null; img.hidden = true; ph.hidden = false; phLabel.textContent = t('card.imageAdd'); img.removeAttribute('src'); }
       img.alt = c.name || ''; ph.style.paddingBottom = (c.ratio || 0.7) * 100 + '%';
     };
   },
 
   file(rec, e, view) {
     const name = h('div', { class: 'file-name' }); const meta = h('div', { class: 'file-meta' });
-    const dl = h('a', { class: 'file-dl', 'data-nodrag': '', href: '#' }, 'Download');
+    const dl = h('a', { class: 'file-dl', 'data-nodrag': '', href: '#' }, t('card.download'));
     dl.addEventListener('click', async (ev) => {
       const c = view.store.live(e.id)?.content; if (!c?.path || !view.files) return;      // inline files use the plain href
-      ev.preventDefault(); dl.textContent = 'Preparing…';
-      try { const u = await view.files.objectUrl(c.path); const a = h('a', { href: u, download: c.name || 'file' }); document.body.append(a); a.click(); a.remove(); } catch { view.onNotify?.('Could not download that file right now'); }
-      dl.textContent = 'Download';
+      ev.preventDefault(); dl.textContent = t('card.preparing');
+      try { const u = await view.files.objectUrl(c.path); const a = h('a', { href: u, download: c.name || 'file' }); document.body.append(a); a.click(); a.remove(); } catch { view.onNotify?.(t('card.downloadFail')); }
+      dl.textContent = t('card.download');
     });
     rec.node.append(h('div', { class: 'file-ico' }, '📄'), h('div', { class: 'file-info' }, name, meta, dl));
     rec.update = (el) => { const c = el.content; name.textContent = c.name; meta.textContent = fmtSize(c.size); if (c.path) dl.removeAttribute('download'); else { dl.href = c.src; dl.download = c.name; } };

@@ -1,14 +1,16 @@
 // Element factories, defaults and helpers (no DOM rendering here).
 import { uid } from './store.js';
+import { t } from './i18n.js';
 
 export const COLORS = [null, '#fff7c2', '#ffd9d2', '#d6ecff', '#d9f5dc', '#e8dcff', '#ffe6bf', '#e9e9ee'];
 export const BOARD_COLORS = ['#7aa2f7', '#f7768e', '#9ece6a', '#e0af68', '#bb9af7', '#7dcfff', '#ff9e64', '#a0a6b5'];
 export const BOARD_ICONS = ['📁', '💡', '🎨', '📅', '🎯', '📚', '🚀', '🌱', '🎬', '🏠', '🧪', '✈️'];
 
-export const TYPE_LABEL = {
-  note: 'Note', link: 'Link', todo: 'To-do list', task: 'Task', column: 'Column', board: 'Board',
-  comment: 'Comment', table: 'Table', image: 'Image', file: 'File', sketch: 'Sketch', line: 'Line',
-};
+/** localised label per element type (a Proxy so TYPE_LABEL[type] always follows the active language) */
+export const TYPE_LABEL = new Proxy({}, { get: (_, k) => (typeof k === 'string' ? t('type.' + k) : undefined) });
+
+/** display name of a board: the root board is stored as "Home" and shown in the active language */
+export const boardName = (b) => (b.parentId == null && (!b.content.title || b.content.title === 'Home') ? t('common.home') : (b.content.title || t('common.untitled')));
 
 /** which element types a container accepts */
 export const ACCEPTS = {
@@ -34,8 +36,8 @@ export function defaultContent(type) {
     case 'note': return { html: '' };
     case 'task': return { text: '', done: false };
     case 'todo': return { title: '', showTitle: false };
-    case 'column': return { title: 'New column' };
-    case 'board': return { title: 'New board', icon: '📁', tint: BOARD_COLORS[(Math.random() * BOARD_COLORS.length) | 0] };
+    case 'column': return { title: t('default.column') };
+    case 'board': return { title: t('default.board'), icon: '📁', tint: BOARD_COLORS[(Math.random() * BOARD_COLORS.length) | 0] };
     case 'link': return { url: '', title: '' };
     case 'comment': return { thread: [] };
     case 'table': return { rows: [['', '', ''], ['', '', ''], ['', '', ''], ['', '', '']], header: true };

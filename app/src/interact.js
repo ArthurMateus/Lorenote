@@ -3,6 +3,7 @@ import { ACCEPTS, makeElement, TYPE_LABEL, isContainer, hostOf, normalizeUrl } f
 import { uid } from './store.js';
 import { SKETCH_W } from './view.js';
 import { snap } from './layout.js';
+import { t } from './i18n.js';
 
 const isEditing = (t) => !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 const NO_DRAG = 'input,textarea,select,button,a,[data-nodrag],[contenteditable="true"],[contenteditable="plaintext-only"]';
@@ -103,7 +104,7 @@ export function setupInteractions(view, toast) {
     let n = 0; const cloud = !!view.files;
     for (const f of files) {
       const limit = cloud ? 25 : 12;
-      if (f.size > limit * 1048576) { toast(`${f.name} is larger than ${limit} MB and was skipped`); continue; }
+      if (f.size > limit * 1048576) { toast(t('toast.fileTooLarge', { name: f.name, limit })); continue; }
       try {
         const at = hit ? { ...hit, x: (hit.x ?? 80) + n * 24, y: (hit.y ?? 80) + n * 24 } : undefined;
         const isImage = f.type.startsWith('image/');
@@ -116,13 +117,13 @@ export function setupInteractions(view, toast) {
         const id = replaceId || uid();
         if (content.blob) {          // signed in: upload first; if that fails (offline) keep the data inline and let the migration move it later
           const blob = content.blob; delete content.blob;
-          try { toast(`Uploading ${f.name}…`, null, '', 20000); content.path = await view.files.upload(id, blob, f.name); }
-          catch (err) { if (/larger than/.test(err.message)) { toast(err.message); continue; } content.src = await readDataURL(blob); toast(`${f.name} saved on this device; it will upload when you are back online`); }
+          try { toast(t('toast.uploading', { name: f.name }), null, '', 20000); content.path = await view.files.upload(id, blob, f.name); }
+          catch (err) { if (err.code === 'too-large' || /larger than/.test(err.message)) { toast(err.message); continue; } content.src = await readDataURL(blob); toast(t('toast.savedLocal', { name: f.name })); }
         }
         if (replaceId) { const cur = store.live(replaceId); if (cur) { const old = cur.content.path; store.commit([{ id: replaceId, after: { ...cur, content: { ...cur.content, src: undefined, path: undefined, ...content } } }], { label: 'Replace image' }); if (old) view.files?.forget(old); } }
         else { const el = create(isImage ? 'image' : 'file', at, content, id); void el; }
         n++;
-      } catch { toast(`Could not read ${f.name}`); }
+      } catch { toast(t('toast.readFail', { name: f.name })); }
     }
   }
 
@@ -230,7 +231,7 @@ export function setupInteractions(view, toast) {
       const c = containerAt(e.clientX, e.clientY, types, dragIds);
       const changes = [];
       const needsList = types.includes('task');
-      if (needsList && !(c && c.type === 'todo')) { cancelDrag(items); toast('Tasks can only live inside a to-do list'); return; }
+      if (needsList && !(c && c.type === 'todo')) { cancelDrag(items); toast(t('toast.tasksOnly')); return; }
       if (c && c.type !== 'board') {
         const orders = orderFor(c.id, e.clientY, dragIds, items.length);
         items.forEach((it, i) => changes.push({ id: it.e.id, after: { ...it.e, parentId: c.id, section: 'stack', order: orders[i], w: 0 } }));
@@ -447,7 +448,7 @@ export function setupInteractions(view, toast) {
   view.onDeleteIds = (ids) => {
     const live = ids.map((id) => store.live(id)).filter(Boolean); if (!live.length) return;
     store.commit(live.map((e) => ({ id: e.id, after: { ...e, trashed: true, trashedAt: Date.now() } })), { label: 'Delete' });
-    view.selection.clear(); view.onSelection?.(); toast(`${live.length} item${live.length > 1 ? 's' : ''} moved to trash`, () => store.undo());
+    view.selection.clear(); view.onSelection?.(); toast(t('toast.trashed', { n: live.length }), () => store.undo());
   };
   view.onDelete = () => view.onDeleteIds([...view.selection]);
 
@@ -478,8 +479,8 @@ export function setupInteractions(view, toast) {
     if (ev.code === 'Space' && !isEditing(ev.target)) { space = true; vp.classList.add('pannable'); ev.preventDefault(); }
     const mod = ev.ctrlKey || ev.metaKey;
     const editing = isEditing(ev.target);
-    if (mod && !ev.shiftKey && ev.key.toLowerCase() === 'z' && !editing) { ev.preventDefault(); if (!store.undo()) toast('Nothing to undo'); return; }
-    if (mod && (ev.key.toLowerCase() === 'y' || (ev.shiftKey && ev.key.toLowerCase() === 'z')) && !editing) { ev.preventDefault(); if (!store.redo()) toast('Nothing to redo'); return; }
+    if (mod && !ev.shiftKey && ev.key.toLowerCase() === 'z' && !editing) { ev.preventDefault(); if (!store.undo()) toast(t('toast.nothingUndo')); return; }
+    if (mod && (ev.key.toLowerCase() === 'y' || (ev.shiftKey && ev.key.toLowerCase() === 'z')) && !editing) { ev.preventDefault(); if (!store.redo()) toast(t('toast.nothingRedo')); return; }
     if (editing || document.body.classList.contains('presenting')) return;
     if (mod && ev.key.toLowerCase() === 'l') { ev.preventDefault(); view.layout.toggleLock(store, view); return; }
     if (ev.key === ']' && view.selection.size) { ev.preventDefault(); view.layout.stack(store, view, 'front'); return; }

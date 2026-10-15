@@ -17,66 +17,66 @@
 </head>
 <body data-theme="system">
 <section id="landing" hidden>
-  <header class="l-top"><span class="brand"><span class="logo"></span>Lorenote</span><span class="l-top-actions"><button class="ib theme-toggle" type="button" title="Switch light / dark" aria-label="Switch light or dark mode"><i data-icon="moon"></i></button><button id="auth-guest" class="btn ghost" type="button">Try it without an account</button></span></header>
+  <header class="l-top"><span class="brand"><span class="logo"></span>Lorenote</span><span class="l-top-actions"><select id="lang-select" class="lang-select" data-i18n-aria-label="lang.label" aria-label="Language"></select><button class="ib theme-toggle" type="button" data-i18n-title="theme.switch" title="Switch light / dark"><i data-icon="moon"></i></button><button id="auth-guest" class="btn ghost" type="button" data-i18n="landing.guest">Try it without an account</button></span></header>
   <div class="l-grid">
     <div class="l-hero">
-      <h1>Think visually.<br>Keep it all on one board.</h1>
-      <p>Notes, links, to-do lists, tables, sketches and files on an endless canvas. Nest boards inside boards, connect ideas with lines, and pick up where you left off on any device.</p>
+      <h1><span data-i18n="landing.h1a">Think visually.</span><br><span data-i18n="landing.h1b">Keep it all on one board.</span></h1>
+      <p data-i18n="landing.lead">Notes, links, to-do lists, tables, sketches and files on an endless canvas. Nest boards inside boards, connect ideas with lines, and pick up where you left off on any device.</p>
       <ul>
-        <li><b>Free-form boards</b> with columns, lists and connectors</li>
-        <li><b>Boards inside boards</b>, as deep as you like</li>
-        <li><b>Your account, every device</b>: laptop, tablet and phone stay in sync</li>
-        <li><b>No limits</b>: every feature is on, no paywall</li>
+        <li><b data-i18n="landing.b1h">Free-form boards</b><span data-i18n="landing.b1t"> with columns, lists and connectors</span></li>
+        <li><b data-i18n="landing.b2h">Boards inside boards</b><span data-i18n="landing.b2t">, as deep as you like</span></li>
+        <li><b data-i18n="landing.b3h">Your account, every device</b><span data-i18n="landing.b3t">: laptop, tablet and phone stay in sync</span></li>
+        <li><b data-i18n="landing.b4h">No limits</b><span data-i18n="landing.b4t">: every feature is on, no paywall</span></li>
       </ul>
     </div>
     <form id="auth-form" class="l-card" novalidate>
-      <div class="auth-tabs"><button type="button" class="auth-tab on" data-mode="signin">Sign in</button><button type="button" class="auth-tab" data-mode="signup">Create account</button></div>
-      <label>Email<input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
-      <label>Password<input id="auth-pass" type="password" autocomplete="current-password" placeholder="At least 8 characters" required></label>
+      <div class="auth-tabs"><button type="button" class="auth-tab on" data-mode="signin" data-i18n="auth.signin">Sign in</button><button type="button" class="auth-tab" data-mode="signup" data-i18n="auth.signup">Create account</button></div>
+      <label><span data-i18n="auth.email">Email</span><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+      <label><span data-i18n="auth.password">Password</span><input id="auth-pass" type="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordHint" placeholder="At least 8 characters" required></label>
       <p id="auth-msg" class="auth-msg" hidden></p>
       <button id="auth-submit" class="btn primary" type="submit">Sign in</button>
-      <div class="l-links"><button id="auth-magic" type="button" class="linkbtn">Email me a magic link</button><button id="auth-forgot" type="button" class="linkbtn">Forgot password?</button></div>
+      <div class="l-links"><button id="auth-magic" type="button" class="linkbtn" data-i18n="auth.magic">Email me a magic link</button><button id="auth-forgot" type="button" class="linkbtn" data-i18n="auth.forgot">Forgot password?</button></div>
       <div id="auth-oauth" class="l-oauth" hidden></div>
     </form>
   </div>
 </section>
 
 <header id="topbar">
-  <button id="home" class="brand" title="Go to the home board"><span class="logo"></span><span class="brand-name">Lorenote</span></button>
-  <button id="btn-tree" class="ib" title="Boards (all your nested boards)" aria-label="Boards"><i data-icon="tree"></i></button>
-  <nav id="crumbs" aria-label="Board path"></nav>
+  <button id="home" class="brand" data-i18n-title="nav.home" title="Go to the home board"><span class="logo"></span><span class="brand-name">Lorenote</span></button>
+  <button id="btn-tree" class="ib" data-i18n-title="nav.boardsTip" title="Boards (all your nested boards)" data-i18n-aria-label="nav.boards" aria-label="Boards"><i data-icon="tree"></i></button>
+  <nav id="crumbs" data-i18n-aria-label="nav.path" aria-label="Board path"></nav>
   <span class="spacer"></span>
   <span id="sync" class="sync" hidden></span>
-  <button id="btn-undo" class="ib" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><i data-icon="undo"></i></button>
-  <button id="btn-redo" class="ib" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><i data-icon="redo"></i></button>
+  <button id="btn-undo" class="ib" data-i18n-title="nav.undoTip" title="Undo (Ctrl+Z)" data-i18n-aria-label="nav.undo" aria-label="Undo" disabled><i data-icon="undo"></i></button>
+  <button id="btn-redo" class="ib" data-i18n-title="nav.redoTip" title="Redo (Ctrl+Shift+Z)" data-i18n-aria-label="nav.redo" aria-label="Redo" disabled><i data-icon="redo"></i></button>
   <span class="vsep"></span>
-  <button id="zoom-out" class="ib" title="Zoom out" aria-label="Zoom out"><i data-icon="minus" data-size="18"></i></button>
-  <button id="zoom-label" class="ib wide" title="Reset zoom to 100%">100%</button>
-  <button id="zoom-in" class="ib" title="Zoom in" aria-label="Zoom in"><i data-icon="plus" data-size="18"></i></button>
-  <button id="btn-fit" class="ib" title="Zoom to fit (Shift+1)" aria-label="Zoom to fit"><i data-icon="fit"></i></button>
+  <button id="zoom-out" class="ib" data-i18n-title="nav.zoomOut" title="Zoom out" data-i18n-aria-label="nav.zoomOut" aria-label="Zoom out"><i data-icon="minus" data-size="18"></i></button>
+  <button id="zoom-label" class="ib wide" data-i18n-title="nav.zoomReset" title="Reset zoom to 100%">100%</button>
+  <button id="zoom-in" class="ib" data-i18n-title="nav.zoomIn" title="Zoom in" data-i18n-aria-label="nav.zoomIn" aria-label="Zoom in"><i data-icon="plus" data-size="18"></i></button>
+  <button id="btn-fit" class="ib" data-i18n-title="nav.fitTip" title="Zoom to fit (Shift+1)" data-i18n-aria-label="nav.fit" aria-label="Zoom to fit"><i data-icon="fit"></i></button>
   <span class="vsep"></span>
-  <button id="btn-templates" class="tb" title="Template library"><i data-icon="template" data-size="18"></i><span>Templates</span></button>
-  <button id="btn-search" class="ib" title="Search all boards (Ctrl+K)" aria-label="Search"><i data-icon="search"></i></button>
-  <button id="btn-present" class="ib" title="Present this board" aria-label="Present"><i data-icon="present"></i></button>
-  <button id="btn-trash" class="ib" title="Trash" aria-label="Trash"><i data-icon="trash"></i></button>
-  <button id="btn-theme" class="ib theme-toggle" title="Switch light / dark" aria-label="Switch light or dark mode"><i data-icon="moon"></i></button>
-  <button id="btn-menu" class="ib" title="Menu" aria-label="Menu"><i data-icon="menu"></i></button>
+  <button id="btn-templates" class="tb" data-i18n-title="nav.templatesTip" title="Template library"><i data-icon="template" data-size="18"></i><span data-i18n="nav.templates">Templates</span></button>
+  <button id="btn-search" class="ib" data-i18n-title="nav.searchTip" title="Search all boards (Ctrl+K)" data-i18n-aria-label="nav.search" aria-label="Search"><i data-icon="search"></i></button>
+  <button id="btn-present" class="ib" data-i18n-title="nav.presentTip" title="Present this board" data-i18n-aria-label="nav.present" aria-label="Present"><i data-icon="present"></i></button>
+  <button id="btn-trash" class="ib" data-i18n-title="nav.trash" title="Trash" data-i18n-aria-label="nav.trash" aria-label="Trash"><i data-icon="trash"></i></button>
+  <button id="btn-theme" class="ib theme-toggle" title="Switch light / dark"><i data-icon="moon"></i></button>
+  <button id="btn-menu" class="ib" data-i18n-title="nav.menu" title="Menu" data-i18n-aria-label="nav.menu" aria-label="Menu"><i data-icon="menu"></i></button>
   <div id="menu" class="popmenu" hidden></div>
 </header>
 
-<aside id="toolbar" aria-label="Tools">
-  <button class="tool" data-type="note" title="Note — drag onto the canvas"><i data-icon="note" data-size="22"></i><span>Note</span></button>
-  <button class="tool" data-type="link" title="Link"><i data-icon="link" data-size="22"></i><span>Link</span></button>
-  <button class="tool" data-type="todo" title="To-do list"><i data-icon="todo" data-size="22"></i><span>To-do</span></button>
-  <button class="tool" data-type="line" title="Line / connector"><i data-icon="line" data-size="22"></i><span>Line</span></button>
-  <button class="tool" data-type="board" title="Sub-board (a board inside this board)"><i data-icon="board" data-size="22"></i><span>Board</span></button>
-  <button class="tool" data-type="column" title="Column"><i data-icon="column" data-size="22"></i><span>Column</span></button>
-  <button class="tool" data-type="comment" title="Comment"><i data-icon="comment" data-size="22"></i><span>Comment</span></button>
-  <button class="tool" data-type="table" title="Table"><i data-icon="table" data-size="22"></i><span>Table</span></button>
+<aside id="toolbar" data-i18n-aria-label="tools.aria" aria-label="Tools">
+  <button class="tool" data-type="note" data-i18n-title="tool.noteTip" title="Note — drag onto the canvas"><i data-icon="note" data-size="22"></i><span data-i18n="tool.note">Note</span></button>
+  <button class="tool" data-type="link" data-i18n-title="tool.linkTip" title="Link"><i data-icon="link" data-size="22"></i><span data-i18n="tool.link">Link</span></button>
+  <button class="tool" data-type="todo" data-i18n-title="tool.todoTip" title="To-do list"><i data-icon="todo" data-size="22"></i><span data-i18n="tool.todo">To-do</span></button>
+  <button class="tool" data-type="line" data-i18n-title="tool.lineTip" title="Line / connector"><i data-icon="line" data-size="22"></i><span data-i18n="tool.line">Line</span></button>
+  <button class="tool" data-type="board" data-i18n-title="tool.boardTip" title="Sub-board (a board inside this board)"><i data-icon="board" data-size="22"></i><span data-i18n="tool.board">Board</span></button>
+  <button class="tool" data-type="column" data-i18n-title="tool.columnTip" title="Column"><i data-icon="column" data-size="22"></i><span data-i18n="tool.column">Column</span></button>
+  <button class="tool" data-type="comment" data-i18n-title="tool.commentTip" title="Comment"><i data-icon="comment" data-size="22"></i><span data-i18n="tool.comment">Comment</span></button>
+  <button class="tool" data-type="table" data-i18n-title="tool.tableTip" title="Table"><i data-icon="table" data-size="22"></i><span data-i18n="tool.table">Table</span></button>
   <hr>
-  <button class="tool" data-type="image" title="Image"><i data-icon="image" data-size="22"></i><span>Image</span></button>
-  <button class="tool" data-type="file" title="File"><i data-icon="file" data-size="22"></i><span>File</span></button>
-  <button class="tool" data-type="sketch" title="Sketch"><i data-icon="sketch" data-size="22"></i><span>Sketch</span></button>
+  <button class="tool" data-type="image" data-i18n-title="tool.imageTip" title="Image"><i data-icon="image" data-size="22"></i><span data-i18n="tool.image">Image</span></button>
+  <button class="tool" data-type="file" data-i18n-title="tool.fileTip" title="File"><i data-icon="file" data-size="22"></i><span data-i18n="tool.file">File</span></button>
+  <button class="tool" data-type="sketch" data-i18n-title="tool.sketchTip" title="Sketch"><i data-icon="sketch" data-size="22"></i><span data-i18n="tool.sketch">Sketch</span></button>
 </aside>
 
 <main id="viewport" class="grid">
@@ -88,48 +88,59 @@
   </div>
   <div id="marquee" hidden></div>
   <div id="context-bar" hidden></div>
-  <canvas id="minimap" width="360" height="240" hidden title="Overview: click or drag to move around"></canvas>
+  <canvas id="minimap" width="360" height="240" hidden data-i18n-title="minimap.tip" title="Overview: click or drag to move around"></canvas>
   <div id="empty" hidden>
-    <h2>An empty board</h2>
-    <p>Drag a tool from the left, double-click anywhere to drop a note, or drop images and files here.</p>
-    <p class="muted">Tip: drag cards into columns and lists, and drag a line’s end onto a card to connect them.</p>
-    <p><button id="empty-templates" class="btn primary" type="button">Start from a template</button></p>
+    <h2 data-i18n="empty.title">An empty board</h2>
+    <p data-i18n="empty.body">Drag a tool from the left, double-click anywhere to drop a note, or drop images and files here.</p>
+    <p class="muted" data-i18n="empty.tip">Tip: drag cards into columns and lists, and drag a line’s end onto a card to connect them.</p>
+    <p><button id="empty-templates" class="btn primary" type="button" data-i18n="empty.templates">Start from a template</button></p>
   </div>
   <div id="present-hud" hidden>
-    <button id="present-prev" class="ib" aria-label="Previous"><i data-icon="arrowLeft"></i></button>
+    <button id="present-prev" class="ib" data-i18n-aria-label="present.prev" aria-label="Previous"><i data-icon="arrowLeft"></i></button>
     <span id="present-count">1 / 1</span>
-    <button id="present-next" class="ib" aria-label="Next"><i data-icon="arrowRight"></i></button>
-    <button id="present-exit" class="ib" aria-label="Exit presentation" title="Exit (Esc)"><i data-icon="close"></i></button>
+    <button id="present-next" class="ib" data-i18n-aria-label="present.next" aria-label="Next"><i data-icon="arrowRight"></i></button>
+    <button id="present-exit" class="ib" data-i18n-aria-label="present.exit" aria-label="Exit presentation" data-i18n-title="present.exitTip" title="Exit (Esc)"><i data-icon="close"></i></button>
   </div>
 </main>
 
-<aside id="tree-drawer" hidden aria-label="Boards">
-  <header><h3>Boards</h3><button id="tree-close" class="ib" type="button" aria-label="Close"><i data-icon="close"></i></button></header>
+<aside id="tree-drawer" hidden data-i18n-aria-label="tree.title" aria-label="Boards">
+  <header><h3 data-i18n="tree.title">Boards</h3><button id="tree-close" class="ib" type="button" data-i18n-aria-label="common.close" aria-label="Close"><i data-icon="close"></i></button></header>
   <div id="tree-list" role="tree"></div>
-  <footer class="muted">Boards can hold boards, as deep as you like. Click one to open it.</footer>
+  <footer class="muted" data-i18n="tree.footer">Boards can hold boards, as deep as you like. Click one to open it.</footer>
 </aside>
 
-<dialog id="dlg-trash"><form method="dialog"><header><h3>Trash</h3><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="trash-list" class="list"></div><footer><button type="button" id="trash-empty" class="tb danger">Empty trash</button></footer></form></dialog>
-<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" placeholder="Search notes, tasks, links, tables, boards…" autocomplete="off"><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header><div id="search-list" class="list"></div></form></dialog>
-<dialog id="dlg-help"><form method="dialog"><header><h3>Shortcuts &amp; gestures</h3><button class="ib" value="close" aria-label="Close"><i data-icon="close"></i></button></header>
+<dialog id="dlg-trash"><form method="dialog"><header><h3 data-i18n="trash.title">Trash</h3><button class="ib" value="close" data-i18n-aria-label="common.close" aria-label="Close"><i data-icon="close"></i></button></header><div id="trash-list" class="list"></div><footer><button type="button" id="trash-empty" class="tb danger" data-i18n="trash.empty">Empty trash</button></footer></form></dialog>
+<dialog id="dlg-search"><form method="dialog"><header><input id="search-input" type="search" data-i18n-placeholder="search.placeholder" placeholder="Search notes, tasks, links, tables, boards…" autocomplete="off"><button class="ib" value="close" data-i18n-aria-label="common.close" aria-label="Close"><i data-icon="close"></i></button></header><div id="search-list" class="list"></div></form></dialog>
+<dialog id="dlg-help"><form method="dialog"><header><h3 data-i18n="help.title">Shortcuts &amp; gestures</h3><button class="ib" value="close" data-i18n-aria-label="common.close" aria-label="Close"><i data-icon="close"></i></button></header>
 <table class="keys">
-<tr><td>Double-click canvas</td><td>New note</td></tr><tr><td>Double-click note / board</td><td>Edit text / open board</td></tr>
-<tr><td>Drag tool → canvas, column or list</td><td>Create card there</td></tr><tr><td>Drag card onto column / list / board</td><td>Nest it</td></tr>
-<tr><td>Drag a line end onto a card</td><td>Connect</td></tr><tr><td>Shift-click, drag on empty canvas</td><td>Multi-select</td></tr>
-<tr><td>Select 2+ cards</td><td>Align and distribute from the toolbar</td></tr><tr><td>Hold Alt while dragging</td><td>Turn snap guides off for that move</td></tr>
-<tr><td>Space + drag, or wheel</td><td>Pan</td></tr><tr><td>Ctrl + wheel</td><td>Zoom</td></tr><tr><td>Shift+1</td><td>Zoom to fit</td></tr>
-<tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>Undo / redo</td></tr><tr><td>Ctrl+D</td><td>Duplicate</td></tr>
-<tr><td>] / [</td><td>Bring to front / send to back</td></tr><tr><td>Ctrl+L</td><td>Lock / unlock position</td></tr>
-<tr><td>Delete</td><td>Move to trash</td></tr><tr><td>Arrow keys (Shift = ×10)</td><td>Nudge</td></tr>
-<tr><td>Ctrl+K</td><td>Search</td></tr><tr><td>P</td><td>Present (arrows to move, Esc to exit)</td></tr><tr><td>Paste</td><td>Link, note or image card</td></tr>
+<tr><td data-i18n="help.k1">Double-click canvas</td><td data-i18n="help.v1">New note</td></tr>
+<tr><td data-i18n="help.k2">Double-click note / board</td><td data-i18n="help.v2">Edit text / open board</td></tr>
+<tr><td data-i18n="help.k3">Drag tool → canvas, column or list</td><td data-i18n="help.v3">Create card there</td></tr>
+<tr><td data-i18n="help.k4">Drag card onto column / list / board</td><td data-i18n="help.v4">Nest it</td></tr>
+<tr><td data-i18n="help.k5">Drag a line end onto a card</td><td data-i18n="help.v5">Connect</td></tr>
+<tr><td data-i18n="help.k6">Shift-click, drag on empty canvas</td><td data-i18n="help.v6">Multi-select</td></tr>
+<tr><td data-i18n="help.k7">Select 2+ cards</td><td data-i18n="help.v7">Align and distribute from the toolbar</td></tr>
+<tr><td data-i18n="help.k8">Hold Alt while dragging</td><td data-i18n="help.v8">Turn snap guides off for that move</td></tr>
+<tr><td data-i18n="help.k9">Space + drag, or wheel</td><td data-i18n="help.v9">Pan</td></tr>
+<tr><td data-i18n="help.k10">Ctrl + wheel</td><td data-i18n="help.v10">Zoom</td></tr>
+<tr><td>Shift+1</td><td data-i18n="help.v11">Zoom to fit</td></tr>
+<tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td data-i18n="help.v12">Undo / redo</td></tr>
+<tr><td>Ctrl+D</td><td data-i18n="help.v13">Duplicate</td></tr>
+<tr><td>] / [</td><td data-i18n="help.v14">Bring to front / send to back</td></tr>
+<tr><td>Ctrl+L</td><td data-i18n="help.v15">Lock / unlock position</td></tr>
+<tr><td data-i18n="help.k16">Delete</td><td data-i18n="help.v16">Move to trash</td></tr>
+<tr><td data-i18n="help.k17">Arrow keys (Shift = ×10)</td><td data-i18n="help.v17">Nudge</td></tr>
+<tr><td>Ctrl+K</td><td data-i18n="help.v18">Search</td></tr>
+<tr><td>P</td><td data-i18n="help.v19">Present (arrows to move, Esc to exit)</td></tr>
+<tr><td data-i18n="help.k20">Paste</td><td data-i18n="help.v20">Link, note or image card</td></tr>
 </table></form></dialog>
 <dialog id="dlg-templates" class="tpl-dlg"><div class="tpl-wrap">
-  <aside class="tpl-side"><input id="tpl-search" type="search" placeholder="Search templates" autocomplete="off"><nav id="tpl-cats" aria-label="Template categories"></nav></aside>
-  <section class="tpl-main"><header><h3 id="tpl-title">All templates</h3><button id="tpl-close" class="ib" type="button" aria-label="Close"><i data-icon="close"></i></button></header>
+  <aside class="tpl-side"><input id="tpl-search" type="search" data-i18n-placeholder="tpl.search" placeholder="Search templates" autocomplete="off"><nav id="tpl-cats" data-i18n-aria-label="tpl.catsAria" aria-label="Template categories"></nav></aside>
+  <section class="tpl-main"><header><h3 id="tpl-title" data-i18n="tpl.all">All templates</h3><button id="tpl-close" class="ib" type="button" data-i18n-aria-label="common.close" aria-label="Close"><i data-icon="close"></i></button></header>
     <div id="tpl-grid" class="tpl-grid"></div><footer id="tpl-foot" class="tpl-foot"></footer></section></div></dialog>
-<dialog id="dlg-savetpl"><form id="savetpl-form" method="dialog" class="newpass"><header><h3>Save this board as a template</h3></header>
-  <div class="body"><input id="savetpl-name" maxlength="80" placeholder="Template name" autocomplete="off" required><p class="muted" style="margin:0;font-size:12.5px">Everything on this board, including nested boards, is saved. Using the template later adds a copy.</p><p id="savetpl-msg" class="auth-msg" hidden></p></div>
-  <footer><button type="button" id="savetpl-cancel" class="btn ghost">Cancel</button>&nbsp;<button id="savetpl-go" class="btn primary" type="submit">Save template</button></footer></form></dialog>
+<dialog id="dlg-savetpl"><form id="savetpl-form" method="dialog" class="newpass"><header><h3 data-i18n="tpl.saveTitle">Save this board as a template</h3></header>
+  <div class="body"><input id="savetpl-name" maxlength="80" data-i18n-placeholder="tpl.namePlaceholder" placeholder="Template name" autocomplete="off" required><p class="muted" style="margin:0;font-size:12.5px" data-i18n="tpl.saveHint">Everything on this board, including nested boards, is saved. Using the template later adds a copy.</p><p id="savetpl-msg" class="auth-msg" hidden></p></div>
+  <footer><button type="button" id="savetpl-cancel" class="btn ghost" data-i18n="common.cancel">Cancel</button>&nbsp;<button id="savetpl-go" class="btn primary" type="submit" data-i18n="tpl.save">Save template</button></footer></form></dialog>
 <div id="templates-menu" class="popmenu" hidden></div>
 <div id="toast" hidden></div>
 <script type="module" src="src/main.js"></script>
