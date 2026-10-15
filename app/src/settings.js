@@ -75,6 +75,7 @@ export function setupSettings(ctx) {
       goal.addEventListener('change', () => { const v = Math.max(0, Math.min(100000, Math.round(Number(goal.value) || 0))); pref('wordGoal', v || null); goal.value = v || ''; });
       return [group('', row(t('set.goal'), t('set.goal.d'), goal),
         row(t('set.wc'), t('set.wc.d'), toggle(store.prefs.wordCounts !== false, (v) => { pref('wordCounts', v); ctx.view?.render?.(); }, t('set.wc'))),
+        row(t('set.manuscript'), t('set.manuscript.d'), action(t('set.open'), closeThen(() => ctx.manuscript.open()))),
         row(t('wr.capture'), t('set.capture.d'), action(t('set.open'), closeThen(() => ctx.writer.openCapture()))),
         row(t('set.compile'), t('set.compile.d'), action(t('wr.exportMd'), () => ctx.writer.downloadMd())))];
     },

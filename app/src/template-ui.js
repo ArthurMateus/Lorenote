@@ -92,7 +92,7 @@ export function setupTemplates({ store, view, backend, user, toast }) {
 
   // ---------------------------------------------------------------- use a template
   function addHere(t) {
-    const spot = freeSpot(store, view.boardId);
+    const spot = freeSpot(store, view.boardId, view);
     const changes = instantiate(store, nodesOf(t), view.boardId, spot);
     store.commit(changes, { label: `Template: ${t.name}` });
     dlg.close();
@@ -100,7 +100,7 @@ export function setupTemplates({ store, view, backend, user, toast }) {
     toast(tr('tpl.added', { name: t.name }), () => store.undo());
   }
   function asNewBoard(t) {
-    const spot = freeSpot(store, view.boardId);
+    const spot = freeSpot(store, view.boardId, view);
     const b = makeElement('board', view.boardId, { x: spot.dx, y: spot.dy, z: store.maxZ(view.boardId) + 1, w: 96, content: { title: t.name, icon: ICONS[t.category] || '📁', tint: TINTS[t.category] || '#7aa2f7' } });
     store.commit([{ id: b.id, after: b }, ...instantiate(store, nodesOf(t), b.id, { dx: 0, dy: 0 })], { label: `New board: ${t.name}` });
     dlg.close(); view.onOpen?.(b.id);

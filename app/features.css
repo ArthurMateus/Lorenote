@@ -167,6 +167,8 @@
 }
 
 /* ---------- writer tools: word counts, goal chip, writing view, quick capture */
+.t-note .note-text { max-height: 380px; overflow-y: auto; }
+.t-note .note-text[contenteditable="true"] { max-height: none; }
 .t-note { position: absolute; }
 .note-wc { position: absolute; right: 10px; bottom: 4px; font-size: 10.5px; color: var(--muted); opacity: 0; pointer-events: none; transition: opacity .15s; }
 .t-note:hover .note-wc, .t-note.sel .note-wc { opacity: .9; }
@@ -197,3 +199,19 @@
   #crumbs > .sep { flex: none; }
   #btn-undo, #btn-redo { min-width: 30px; padding: 0 4px; }
 }
+
+/* ---------- manuscript view */
+.ms-dlg { width: min(1100px, 96vw); height: min(780px, 92vh); padding: 0; border-radius: 18px; display: none; flex-direction: column; overflow: hidden; } .ms-dlg[open] { display: flex; }
+.ms-head { display: flex; align-items: flex-start; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); } .ms-top { flex: 1; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; } .ms-top h3 { margin: 0; font: 600 20px var(--serif); } .ms-sub { font-size: 13px; margin-top: 2px; }
+.ms-acts { display: flex; gap: 6px; align-items: center; } .ms-goal { display: flex; gap: 10px; align-items: center; font-size: 12.5px; color: var(--muted); } .ms-goal label { display: flex; gap: 8px; align-items: center; }
+.ms-cols { flex: 1; display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 1fr); min-height: 0; }
+.ms-list { overflow-y: auto; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 10px; border-right: 1px solid var(--line); }
+.ms-pwrap { display: flex; flex-direction: column; min-height: 0; } .ms-ptitle { padding: 12px 16px 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.ms-prev { flex: 1; margin: 0; padding: 12px 16px 24px; overflow: auto; white-space: pre-wrap; font: 14px/1.7 var(--serif); }
+.ms-ch { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 10px 12px; } .ms-part { background: color-mix(in srgb, var(--accent) 6%, var(--card)); } .ms-loose { opacity: .8; }
+.ms-chh { display: flex; align-items: center; gap: 6px; } .ms-name { flex: 1; min-width: 0; text-align: left; border: 0; background: none; font: 600 15px var(--serif); padding: 4px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-w { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; } .ms-tgt { width: 84px; padding: 3px 6px; font-size: 12px; }
+.ms-bar { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 9%, transparent); overflow: hidden; margin: 8px 0 2px; min-width: 90px; } .ms-bar span { display: block; height: 100%; background: var(--accent); border-radius: 99px; } .ms-bar.hit span { background: #3ea34a; }
+.ms-scenes { list-style: none; margin: 6px 0 0; padding: 0; } .ms-scenes li { display: flex; align-items: center; gap: 4px; border-top: 1px solid var(--line); }
+.ms-scene { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 6px 2px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ms-scene:hover, .ms-name:hover { color: var(--accent); }
+@media (max-width: 760px) { .ms-dlg { width: 100vw; height: 100dvh; border-radius: 0; } .ms-cols { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } .ms-list { border-right: 0; border-bottom: 1px solid var(--line); } }

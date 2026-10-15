@@ -96,6 +96,8 @@ export function setupWriter(ctx) {
       store.commit([{ id: note.id, after: note }], { label: 'New note' });
     }
     const nid = note.id; let timer = null;
+    const live = document.querySelector(`[data-id="${nid}"] .note-text`);      // text typed in the card but not committed yet (the editor has not lost focus)
+    if (live) { const h0 = sanitizeHtml(live.innerHTML); if (store.live(nid) && store.live(nid).content.html !== h0) { patch(nid, { html: h0 }, 'Edit note'); note = store.live(nid); } }
     const dlg = h('dialog', { class: 'fx-dlg', 'aria-label': t('wr.focus') });
     const ed = h('div', { class: 'fx-ed', contenteditable: 'true', 'data-placeholder': t('wr.placeholder'), spellcheck: 'true' });
     const stat = h('span', { class: 'fx-stat' });
@@ -168,18 +170,27 @@ export function setupWriter(ctx) {
     return total;
   }
   let tick = null;
+  function readToday() { try { const s = JSON.parse(localStorage.getItem('lorenote.wc.today') || 'null'); if (s && s.date === dayKey()) return s.n; } catch { /* private mode */ } return 0; }
+  function addToday(n) { try { localStorage.setItem('lorenote.wc.today', JSON.stringify({ date: dayKey(), n: readToday() + n })); } catch { /* private mode */ } }
   function paintChip() {
     if (!chip) return; const goal = Number(store.prefs.wordGoal) || 0;
     if (!goal) { chip.hidden = true; return; }
-    const total = totalWords(store); if (base == null || baseDay !== dayKey()) { base = baseline(total); baseDay = dayKey(); }
-    const done = Math.max(0, total - base); const pct = Math.min(100, Math.round((done / goal) * 100));
+    const total = totalWords(store);
+    const done = readToday(); const pct = Math.min(100, Math.round((done / goal) * 100));
     chip.hidden = false; chip.style.setProperty('--p', pct + '%'); chip.classList.toggle('hit', done >= goal);
     chip.textContent = t('wr.goalChip', { done, goal }); chip.title = t('wr.goalTip', { n: total });
   }
   const schedule = () => { clearTimeout(tick); tick = setTimeout(paintChip, 900); };
-  store.subscribe((i) => { if (i.patches?.length || i.pref === 'wordGoal' || i.reset) schedule(); });
+  store.subscribe((i) => {
+    if (i.local && !i.reset) for (const p of i.patches || []) {
+      if (p.before?.type !== 'note' || p.after?.type !== 'note') continue;      // templates, captures and imports create cards; only typing in existing notes counts
+      const d = noteWords(p.after.content.html) - noteWords(p.before.content.html); if (d > 0 && d < 3000) addToday(d);
+    }
+    if (i.patches?.length || i.pref === 'wordGoal' || i.reset) schedule();
+  });
   chip?.addEventListener('click', () => ctx.openSettings?.('writing'));
   setTimeout(paintChip, 600);
+  window.addEventListener('lang-change', paintChip);
 
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i') { e.preventDefault(); openCapture(); }

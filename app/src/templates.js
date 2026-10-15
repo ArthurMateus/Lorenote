@@ -67,11 +67,11 @@ export function instantiate(store, nodes, parentId, { dx = 0, dy = 0 } = {}) {
 }
 
 /** bounding box of what is already on a board, to drop a template beside it instead of on top */
-export function freeSpot(store, boardId) {
+export function freeSpot(store, boardId, view) {
   const kids = store.children(boardId, 'canvas').filter((e) => e.type !== 'line');
   if (!kids.length) return { dx: 0, dy: 0 };
   let right = -Infinity, top = Infinity;
-  for (const e of kids) { right = Math.max(right, e.x + (e.w || DEFAULT_W[e.type] || 200)); top = Math.min(top, e.y); }
+  for (const e of kids) { const r = view?.worldRect?.(e.id); right = Math.max(right, r ? r.x + r.w : e.x + (e.w || DEFAULT_W[e.type] || 200)); top = Math.min(top, e.y); }
   return { dx: Math.round(right + 80), dy: Math.round(top) };
 }
 

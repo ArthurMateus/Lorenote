@@ -164,8 +164,11 @@ export function openDatabase(store, id) {
     const c = normalize(structuredClone(cur.content));
     if (c.locked && !/view|lock|calendar/i.test(label || '')) return;      // a locked database can still be browsed (views, filters) but not edited
     store.commit([{ id, after: { ...cur, content: fn(c) || c } }], { label, merge });
-    render();
+    if (down) later = true; else render();      // a re-render between mouse-down and mouse-up would swallow the click
   };
+  let down = false, later = false;
+  dlg.addEventListener('pointerdown', () => { down = true; }, true);
+  addEventListener('pointerup', () => { down = false; if (later) { later = false; render(); } }, true);
   let filterText = '', menu = null, month = new Date(); month.setDate(1);
 
   const head = h('header', { class: 'db-bar' });
@@ -218,7 +221,7 @@ export function openDatabase(store, id) {
     return rows;
   }
 
-  const addRow = (extra = {}) => set((n) => { n.rows.push({ id: uid(), title: '', cells: { ...extra } }); return n; }, 'Add row');
+  const addRow = (extra = {}) => set((n) => { const st = n.props.find((p) => p.type === 'status'); const cells = st?.options?.length && !(st.id in extra) ? { [st.id]: st.options[0].id, ...extra } : { ...extra }; n.rows.push({ id: uid(), title: '', cells }); return n; }, 'Add row');
   const delRow = (rid) => set((n) => { n.rows = n.rows.filter((r) => r.id !== rid); return n; }, 'Delete row');
   const titleInput = (c, r) => input(r.title, (val) => set((n) => { n.rows.find((x) => x.id === r.id).title = val; return n; }, 'Edit row', 'dbt' + id + r.id), { placeholder: t('db.row'), disabled: c.locked });
 
@@ -245,7 +248,7 @@ export function openDatabase(store, id) {
     tbl.append(h('thead', {}, h('tr', {}, h('th', { class: 'db-th-title' }, t('db.name')), ...props.map((p) => {
       const th = h('th', {}, h('button', { type: 'button', class: 'db-th', 'data-pop': '', title: t('db.editProp'), disabled: c.locked, onclick: () => { menu = menu === 'p' + p.id ? null : 'p' + p.id; render(); } }, p.name, h('span', { class: 'db-ty' }, p.type)));
       if (menu === 'p' + p.id) th.append(propMenu(c, p)); return th;
-    }), h('th', { class: 'db-th-add' }, h('button', { type: 'button', class: 'db-th', disabled: c.locked, title: t('db.addProp'), onclick: () => set((n) => { n.props.push({ id: uid(), name: t('db.props') + ' ' + (n.props.length + 1), type: 'text', options: [] }); return n; }, 'Add property') }, '+')))));
+    }), h('th', { class: 'db-th-add' }, h('button', { type: 'button', class: 'db-th', disabled: c.locked, title: t('db.addProp'), onclick: () => set((n) => { n.props.push({ id: uid(), name: t('db.propDefault') + ' ' + (n.props.length + 1), type: 'text', options: [] }); return n; }, 'Add property') }, '+')))));
     tbl.append(h('tbody', {}, ...rowsOf(c, v).map((r) => h('tr', {}, h('td', { class: 'db-td-title' }, titleInput(c, r)), ...props.map((p) => h('td', {}, cellEditor(c, r, p))),
       h('td', { class: 'db-td-x' }, h('button', { type: 'button', class: 'ib', 'aria-label': t('db.delRow'), title: t('db.delRow'), disabled: c.locked, onclick: () => delRow(r.id) }, '×'))))));
     return h('div', { class: 'db-scroll' }, tbl, c.locked ? null : h('button', { type: 'button', class: 'tb db-add', onclick: () => addRow() }, t('db.newRow')));

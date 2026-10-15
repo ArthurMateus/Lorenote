@@ -84,7 +84,7 @@ export function sanitizeHtml(html) {
   return out.innerHTML;
 }
 
-export const stripHtml = (html) => { const d = document.createElement('div'); d.innerHTML = sanitizeHtml(html || ''); return d.textContent || ''; };
+export const stripHtml = (html) => { const d = document.createElement('div'); d.innerHTML = sanitizeHtml(html == null ? '' : String(html)); return d.textContent || ''; };
 
 export function elementText(e) {
   const c = e.content;

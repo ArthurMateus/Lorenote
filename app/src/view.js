@@ -467,6 +467,11 @@ const BUILDERS = {
     table.addEventListener('focusout', commitCells);
     table.addEventListener('keydown', (ev) => {
       ev.stopPropagation();
+      if ((ev.key === 'Enter' || ev.key === 'ArrowDown' || ev.key === 'ArrowUp') && ev.target.matches?.('td,th')) {
+        const row = ev.target.parentElement, idx = [...row.cells].indexOf(ev.target); const next = ev.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling;
+        if (next?.cells[idx]) { ev.preventDefault(); next.cells[idx].focus(); const r = document.createRange(); r.selectNodeContents(next.cells[idx]); getSelection().removeAllRanges(); getSelection().addRange(r); } else if (ev.key === 'Enter') ev.preventDefault();
+        return;
+      }
       if (ev.key === 'Tab') {
         ev.preventDefault(); const cells = [...table.querySelectorAll('td,th')]; const i = cells.indexOf(ev.target);
         const next = cells[i + (ev.shiftKey ? -1 : 1)]; if (next) { next.focus(); const r = document.createRange(); r.selectNodeContents(next); getSelection().removeAllRanges(); getSelection().addRange(r); }
